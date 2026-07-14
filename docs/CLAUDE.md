@@ -122,6 +122,35 @@ substitute a different design.
 9. **Naming.** The mode/baseline is called `retrieve` / "retrieve-only" everywhere.
    "Memory-only" is deprecated.
 
+## Amendments (pre-experiment, on record — 2026-07-14, before any bandit code exists)
+
+These were made during baseline implementation, before the first experiment run and
+before rung 4. Git history timestamps them. The writeup must report all three.
+
+1. **`pe_threshold` default 0.25 (signal params: `ewma_alpha=0.3`, `pe_threshold=0.25`).**
+   Correctness repair, not tuning: from a calm signal (EWMA = 0), a single binary
+   misprediction yields EWMA = alpha = exactly 0.3, and the strict `>` comparison
+   against a 0.3 threshold could therefore never fire on first evidence of a shift —
+   the parameter was dead, not suboptimal. The repair direction biases AGAINST the
+   pre-registered hypothesis: it makes the threshold heuristic (the killer baseline)
+   stronger, so the arbiter's ≥10% win criterion gets harder, not easier.
+2. **Disproof-aware retrieval query.** `believed_goal()` skips goal evidence that a
+   LATER entry in the same log contradicts (agent stood on that cell, reward 0). The
+   log itself stays append-only — no decay/merging/consolidation (still parked). Without
+   this, every memory-bearing mode deadlocks magnetically on stale evidence after a
+   shift, and all arbitration experiments (heuristic AND bandit, which share the mode
+   implementations) would measure the deadlock artifact rather than arbitration.
+3. **Experiment set frozen pre-bandit: `experiments/exp-v1.json`.** Regimes, shift
+   schedules, seeds, episode counts, and agent parameters are fixed before rung 4
+   exists, spanning difficulty (grid size, relocation distance, probe bluntness,
+   shift frequency) so a "matches" verdict is a finding about arbitration, not about
+   an easy toy. May not be revised after the first bandit run.
+4. **Rung-4 guard: the bandit's context-feature list is part of the experiment.** It
+   must be declared and locked in the implementation plan BEFORE any bandit code is
+   written. The comparison is "learned policy vs. fixed rule on the same signal";
+   every feature beyond the shared EWMA is machinery that the study framing counts
+   against the method framing.
+
 ## Deadline
 
 Public repo + writeup posted by **August 14, 2026**, regardless of which baseline wins.

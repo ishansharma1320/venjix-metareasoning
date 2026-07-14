@@ -1,0 +1,47 @@
+{
+  "version": "exp-v1",
+  "frozen_at": "2026-07-14",
+  "description": "Pre-registered experiment set, frozen BEFORE any bandit code exists (docs/CLAUDE.md Amendment 3). Regimes span difficulty deliberately: grid size, relocation distance, probe bluntness, and shift frequency all vary so that a 'heuristic matches arbiter' verdict is a finding about arbitration rather than about an easy toy. May not be revised after the first bandit run.",
+  "n_seeds": 20,
+  "n_episodes": 40,
+  "model": "claude-haiku-4-5",
+  "agents": ["reactive", "retrieve", "simulate", "mixture", "heuristic", "bandit"],
+  "agent_params": {
+    "sim_depth": 3,
+    "ewma_alpha": 0.3,
+    "pe_threshold": 0.25,
+    "mixture_weights": [0.25, 0.25, 0.25, 0.25]
+  },
+  "regimes": [
+    {
+      "name": "easy-7",
+      "note": "Small grid, sharp probes, two mild shifts. The regime the smoke runs lived in; kept as the floor of the difficulty spread.",
+      "env": {"size": 7, "probe_radius": 3},
+      "shifts": [[120, 3], [280, 5]]
+    },
+    {
+      "name": "mid-11",
+      "note": "Middle of the road: bigger search space, moderate relocations.",
+      "env": {"size": 11, "probe_radius": 3},
+      "shifts": [[150, 4], [300, 8], [450, 6]]
+    },
+    {
+      "name": "hard-15-far",
+      "note": "Large grid, large relocations: stale beliefs are maximally misleading and re-exploration is expensive.",
+      "env": {"size": 15, "probe_radius": 3},
+      "shifts": [[180, 6], [360, 12], [540, 9]]
+    },
+    {
+      "name": "hard-11-blunt-probe",
+      "note": "Evidence is costly: probe radius 1 means gather_evidence needs many steps to pay off, stressing the spend-on-evidence tradeoff.",
+      "env": {"size": 11, "probe_radius": 1},
+      "shifts": [[150, 4], [300, 8], [450, 6]]
+    },
+    {
+      "name": "turbulent-11",
+      "note": "Frequent alternating shifts: recalibration never gets to settle, stressing recovery speed rather than one-off adaptation.",
+      "env": {"size": 11, "probe_radius": 3},
+      "shifts": [[80, 3], [160, 8], [240, 3], [320, 8], [400, 3], [480, 8]]
+    }
+  ]
+}
