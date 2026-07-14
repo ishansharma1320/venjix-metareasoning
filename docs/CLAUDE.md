@@ -150,6 +150,16 @@ before rung 4. Git history timestamps them. The writeup must report all three.
    written. The comparison is "learned policy vs. fixed rule on the same signal";
    every feature beyond the shared EWMA is machinery that the study framing counts
    against the method framing.
+5. **Bandit registration completed pre-first-run (2026-07-14, same day, zero bandit
+   runs executed).** Context features LOCKED at `(1, ewma, has_belief)` — exactly the
+   heuristic's inputs, nothing more. Algorithm: LinUCB (ridge lambda = 1),
+   deterministic tie-breaking. Reward `r = env_reward − cost_weight × step_cost_usd`
+   ties the bandit to success-per-dollar. Frozen hyperparameters `ucb_alpha = 1.0`,
+   `cost_weight = 100.0` added to `experiments/exp-v1.json` `agent_params` in the same
+   commit that implements the bandit — completing a registration the freeze opened, not
+   revising results-adjacent choices. Adding the two `RunConfig` fields changes every
+   condition's `config_hash`; no experiment results existed, and hashes are final from
+   this commit on.
 
 ## Deadline
 

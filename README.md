@@ -43,7 +43,7 @@ Public repo + writeup posted by **August 14, 2026**, regardless of outcome.
 - [x] Episode logging + cost accounting
 - [x] Retrieve-only, simulate-only, fixed-mixture baselines
 - [x] Threshold heuristic
-- [ ] Contextual-bandit arbiter
+- [x] Contextual-bandit arbiter
 - [ ] Shift experiments + plots
 - [ ] Writeup
 

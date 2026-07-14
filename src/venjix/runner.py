@@ -8,6 +8,7 @@ from pathlib import Path
 
 from venjix.agents import (
     Agent,
+    BanditArbiterAgent,
     FixedMixtureAgent,
     ReactiveAgent,
     RetrieveOnlyAgent,
@@ -49,6 +50,17 @@ def build_agent(config: RunConfig, client: LLMClient) -> Agent:
     if config.agent == "heuristic":
         return ThresholdHeuristicAgent(
             client, config.env, config.seed, config.ewma_alpha, config.pe_threshold
+        )
+    if config.agent == "bandit":
+        return BanditArbiterAgent(
+            client,
+            config.env,
+            config.seed,
+            config.prices,
+            config.sim_depth,
+            config.ewma_alpha,
+            config.ucb_alpha,
+            config.cost_weight,
         )
     return FixedMixtureAgent(
         client, config.env, config.seed, config.mixture_weights, config.sim_depth
@@ -146,11 +158,13 @@ def main() -> None:
     parser.add_argument("--size", type=int, default=7)
     parser.add_argument(
         "--agent",
-        choices=("reactive", "retrieve", "simulate", "mixture", "heuristic"),
+        choices=("reactive", "retrieve", "simulate", "mixture", "heuristic", "bandit"),
         default="reactive",
     )
     parser.add_argument("--ewma-alpha", type=float, default=0.3)
     parser.add_argument("--pe-threshold", type=float, default=0.25)
+    parser.add_argument("--ucb-alpha", type=float, default=1.0)
+    parser.add_argument("--cost-weight", type=float, default=100.0)
     parser.add_argument(
         "--weights", default=None,
         help="mixture only: 4 comma-separated weights over act,retrieve,simulate,gather",
@@ -181,6 +195,8 @@ def main() -> None:
         sim_depth=args.sim_depth,
         ewma_alpha=args.ewma_alpha,
         pe_threshold=args.pe_threshold,
+        ucb_alpha=args.ucb_alpha,
+        cost_weight=args.cost_weight,
     )
     client: LLMClient = (
         MockModel(seed=args.seed) if args.mock else AnthropicModel(args.model)

@@ -10,7 +10,8 @@ import random
 import re
 from dataclasses import dataclass
 
-from venjix.config import GridworldConfig
+from venjix.bandit import LinUCB
+from venjix.config import GridworldConfig, PriceTable
 from venjix.gridworld import ACTIONS, Observation
 from venjix.llm import LLMClient
 from venjix.memory import EpisodicLog, Experience
@@ -45,6 +46,15 @@ class Agent:
 
     def observe(self, prev_obs: Observation, action: str, obs: Observation) -> None:
         return None
+
+
+def gather_action(last_action: str | None, rng: random.Random) -> str:
+    """The gather_evidence policy shared by signal-bearing agents: probe unless
+    the previous action was a probe (probing never moves — a pure-probe mode
+    would pin the agent to one cell), else a seeded random move."""
+    if last_action == "probe":
+        return rng.choice(MOVE_ACTIONS)
+    return "probe"
 
 
 def greedy_step(pos: tuple[int, int], goal: tuple[int, int]) -> str | None:
@@ -219,10 +229,7 @@ class ThresholdHeuristicAgent(Agent):
 
         parse_error = False
         if mode == "gather_evidence":
-            if self._last_action == "probe":
-                action = self._rng.choice(MOVE_ACTIONS)
-            else:
-                action = "probe"
+            action = gather_action(self._last_action, self._rng)
         elif mode == "retrieve":
             action = greedy_step(obs.pos, goal) or self._rng.choice(MOVE_ACTIONS)
         else:
@@ -246,6 +253,97 @@ class ThresholdHeuristicAgent(Agent):
         )
         self.last_prediction_error = int(mispredicted)
         self.signal_value = self.signal.update(mispredicted)
+
+
+class BanditArbiterAgent(Agent):
+    """Rung 4 — LinUCB arbiter over the four modes.
+
+    LOCKED context features (docs/CLAUDE.md Amendment 4, rung-4 plan):
+    x = (1, ewma, has_belief) — exactly the inputs of the heuristic's fixed
+    rule, nothing more, so any win is attributable to learning the mapping.
+
+    Signal protocol and per-step signal cost are identical to the heuristic
+    (same EwmaPredictionError class, one world-model predict per step). Bandit
+    reward is r = env_reward - cost_weight * step_cost_usd, computed from the
+    same client counters and price table the runner logs — the bandit optimizes
+    the pre-registered metric, not raw success. Credit assignment is myopic by
+    design (that is what makes it a bandit; RL arbiters are parked).
+    """
+
+    def __init__(
+        self,
+        client: LLMClient,
+        env_config: GridworldConfig,
+        seed: int,
+        prices: PriceTable,
+        sim_depth: int = 3,
+        ewma_alpha: float = 0.3,
+        ucb_alpha: float = 1.0,
+        cost_weight: float = 100.0,
+    ):
+        self.client = client
+        self.prices = prices
+        self.cost_weight = cost_weight
+        self.memory = EpisodicLog()
+        self.world = WorldModel(client, env_config)
+        self.signal = EwmaPredictionError(ewma_alpha)
+        self.bandit = LinUCB(n_arms=len(MIXTURE_MODES), dim=3, ucb_alpha=ucb_alpha)
+        self._act = ReactiveAgent(client, env_config)
+        self._simulate = SimulateOnlyAgent(
+            client, env_config, seed, sim_depth, memory=self.memory
+        )
+        self._rng = random.Random(seed)
+        self._last_action: str | None = None
+        self._pending = None  # (context, arm, prediction, input0, output0)
+        self.last_prediction_error: int | None = None
+        self.signal_value: float | None = None
+        self.last_bandit_reward: float | None = None
+
+    def choose(self, obs: Observation) -> Decision:
+        input0 = self.client.total_input_tokens
+        output0 = self.client.total_output_tokens
+        goal = self.memory.believed_goal()
+        context = (1.0, self.signal.value, 1.0 if goal is not None else 0.0)
+        arm = self.bandit.select(context)
+        mode = MIXTURE_MODES[arm]
+
+        parse_error = False
+        if mode == "act":
+            act_decision = self._act.choose(obs)
+            action, parse_error = act_decision.action, act_decision.parse_error
+        elif mode == "retrieve":
+            action = (greedy_step(obs.pos, goal) if goal is not None else None) or (
+                self._rng.choice(MOVE_ACTIONS)
+            )
+        elif mode == "simulate":
+            action = self._simulate.choose(obs).action
+        else:
+            action = gather_action(self._last_action, self._rng)
+
+        prediction = self.world.predict(obs.pos, action, goal)
+        self._pending = (context, arm, prediction, input0, output0)
+        return Decision(mode=mode, action=action, parse_error=parse_error)
+
+    def observe(self, prev_obs: Observation, action: str, obs: Observation) -> None:
+        self.memory.append(
+            Experience(prev_obs.pos, action, obs.pos, obs.reward, obs.probe_result)
+        )
+        self._last_action = action
+        if self._pending is None:
+            return
+        context, arm, prediction, input0, output0 = self._pending
+        self._pending = None
+        mispredicted = (
+            prediction.next_pos != obs.pos or prediction.reward != obs.reward
+        )
+        self.last_prediction_error = int(mispredicted)
+        self.signal_value = self.signal.update(mispredicted)
+        step_cost = self.prices.cost_usd(
+            self.client.total_input_tokens - input0,
+            self.client.total_output_tokens - output0,
+        )
+        self.last_bandit_reward = obs.reward - self.cost_weight * step_cost
+        self.bandit.update(arm, context, self.last_bandit_reward)
 
 
 class FixedMixtureAgent(Agent):

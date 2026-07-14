@@ -67,7 +67,7 @@ class PriceTable:
         ) / 1_000_000
 
 
-AGENT_TYPES = ("reactive", "retrieve", "simulate", "mixture", "heuristic")
+AGENT_TYPES = ("reactive", "retrieve", "simulate", "mixture", "heuristic", "bandit")
 
 
 @dataclass(frozen=True)
@@ -89,6 +89,11 @@ class RunConfig:
     # Kept below a single misprediction's EWMA value (= ewma_alpha from 0), so
     # one confident wrong prediction is enough to trigger evidence-gathering.
     pe_threshold: float = 0.25
+    # Bandit hyperparameters, frozen in the rung-4 plan (Amendment 5): LinUCB
+    # exploration width, and dollars-to-reward exchange rate (r = reward -
+    # cost_weight * step_cost_usd) tying the bandit to success-per-dollar.
+    ucb_alpha: float = 1.0
+    cost_weight: float = 100.0
 
     def __post_init__(self) -> None:
         if self.agent not in AGENT_TYPES:
@@ -99,6 +104,8 @@ class RunConfig:
             raise ValueError(f"ewma_alpha must be in (0, 1], got {self.ewma_alpha}")
         if self.pe_threshold < 0:
             raise ValueError(f"pe_threshold must be >= 0, got {self.pe_threshold}")
+        if self.ucb_alpha < 0 or self.cost_weight < 0:
+            raise ValueError("ucb_alpha and cost_weight must be >= 0")
         if self.agent == "mixture":
             if self.mixture_weights is None:
                 object.__setattr__(self, "mixture_weights", (0.25, 0.25, 0.25, 0.25))

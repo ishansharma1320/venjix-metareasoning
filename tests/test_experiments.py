@@ -16,8 +16,9 @@ def test_frozen_set_loads_and_registers_the_bandit():
 def test_all_conditions_materialize_and_are_unique():
     spec = load_spec()
     all_conditions = conditions(spec)
-    # 5 regimes x 5 implemented agents (bandit skipped until rung 4) x 20 seeds
-    assert len(all_conditions) == 5 * 5 * 20
+    # 5 regimes x 6 agents x 20 seeds — registered == implemented since rung 4
+    assert len(all_conditions) == 5 * 6 * 20
+    assert sorted({c.agent for c in all_conditions}) == sorted(spec["agents"])
     assert all(isinstance(c, Condition) for c in all_conditions)
     hashes = {c.config.config_hash() for c in all_conditions}
     assert len(hashes) == len(all_conditions)  # every condition distinct
@@ -37,6 +38,9 @@ def test_signal_params_match_the_recorded_amendment():
     assert params["ewma_alpha"] == 0.3
     assert params["pe_threshold"] == 0.25
     assert params["pe_threshold"] < params["ewma_alpha"]  # single hit must fire
+    # Amendment 5: bandit hyperparams registered pre-first-run.
+    assert params["ucb_alpha"] == 1.0
+    assert params["cost_weight"] == 100.0
 
 
 def test_one_condition_runs_end_to_end(tmp_path):

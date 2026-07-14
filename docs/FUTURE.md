@@ -41,9 +41,3 @@ and close the file.
 - **Harness crossover** — applying the arbiter to a repo-tuned coding agent (simulate
   blast radius before editing; Onboarding Mirror groundwork). Separate project; do not
   merge codebases.
-
-## Parked product ideas (different projects entirely — do not enter this repo)
-
-- Interview-prep teardown content ("NeetCode for AI-assisted interview formats") —
-  validation via 2–3 published pieces, no code.
-- White-box source-aware exploit verification reframe of the bug-bounty tool.

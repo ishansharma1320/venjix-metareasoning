@@ -10,8 +10,11 @@
     "sim_depth": 3,
     "ewma_alpha": 0.3,
     "pe_threshold": 0.25,
-    "mixture_weights": [0.25, 0.25, 0.25, 0.25]
+    "mixture_weights": [0.25, 0.25, 0.25, 0.25],
+    "ucb_alpha": 1.0,
+    "cost_weight": 100.0
   },
+  "amendment_note": "2026-07-14: ucb_alpha and cost_weight added to complete the bandit's registration, BEFORE any bandit run existed (docs/CLAUDE.md Amendment 5). Context features locked at (1, ewma, has_belief).",
   "regimes": [
     {
       "name": "easy-7",

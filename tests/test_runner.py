@@ -109,7 +109,7 @@ def test_costs_match_price_table_exactly(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "agent", ["reactive", "retrieve", "simulate", "mixture", "heuristic"]
+    "agent", ["reactive", "retrieve", "simulate", "mixture", "heuristic", "bandit"]
 )
 def test_reproducibility_same_config_and_seed(tmp_path, agent):
     def strip(lines, manifest):
@@ -141,13 +141,14 @@ def test_retrieve_run_costs_nothing(tmp_path):
     assert all(r["cost_usd"] == 0 for r in lines if r["type"] == "step")
 
 
-def test_signal_fields_populated_only_for_heuristic(tmp_path):
-    _, lines, _ = do_run(tmp_path, "a", agent="heuristic")
-    steps = [r for r in lines if r["type"] == "step"]
-    assert all(r["prediction_error"] in (0, 1) for r in steps)
-    assert all(isinstance(r["signal_ewma"], float) for r in steps)
+def test_signal_fields_populated_only_for_signal_bearing_agents(tmp_path):
+    for name, agent in (("a", "heuristic"), ("b", "bandit")):
+        _, lines, _ = do_run(tmp_path, name, agent=agent)
+        steps = [r for r in lines if r["type"] == "step"]
+        assert all(r["prediction_error"] in (0, 1) for r in steps)
+        assert all(isinstance(r["signal_ewma"], float) for r in steps)
 
-    _, lines, _ = do_run(tmp_path, "b", agent="reactive")
+    _, lines, _ = do_run(tmp_path, "c", agent="reactive")
     steps = [r for r in lines if r["type"] == "step"]
     assert all(r["prediction_error"] is None for r in steps)
     assert all(r["signal_ewma"] is None for r in steps)

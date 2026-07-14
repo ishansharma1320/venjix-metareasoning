@@ -65,6 +65,8 @@ def conditions(spec: dict, agents: list[str] | None = None) -> list[Condition]:
                     sim_depth=params["sim_depth"],
                     ewma_alpha=params["ewma_alpha"],
                     pe_threshold=params["pe_threshold"],
+                    ucb_alpha=params["ucb_alpha"],
+                    cost_weight=params["cost_weight"],
                 )
                 result.append(
                     Condition(regime=regime["name"], agent=agent, seed=seed, config=config)
