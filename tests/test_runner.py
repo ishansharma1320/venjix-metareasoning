@@ -1,6 +1,8 @@
 import json
 import math
 
+import pytest
+
 from venjix.config import (
     GridworldConfig,
     PriceTable,
@@ -21,7 +23,7 @@ STEP_FIELDS = {
 VOLATILE = ("wall_time_ms",)
 
 
-def make_config(seed=11, n_episodes=3):
+def make_config(seed=11, n_episodes=3, agent="reactive"):
     return RunConfig(
         env=GridworldConfig(size=7),
         schedule=ShiftSchedule(
@@ -31,11 +33,12 @@ def make_config(seed=11, n_episodes=3):
         n_episodes=n_episodes,
         model="mock",
         prices=PriceTable(),
+        agent=agent,
     )
 
 
-def do_run(tmp_path, name, seed=11):
-    config = make_config(seed=seed)
+def do_run(tmp_path, name, seed=11, agent="reactive"):
+    config = make_config(seed=seed, agent=agent)
     summary = run(config, MockModel(seed=seed), tmp_path / name)
     lines = [
         json.loads(line)
@@ -105,7 +108,8 @@ def test_costs_match_price_table_exactly(tmp_path):
         assert record["llm_calls"] == 1  # reactive: exactly one call per step
 
 
-def test_reproducibility_same_config_and_seed(tmp_path):
+@pytest.mark.parametrize("agent", ["reactive", "retrieve", "simulate", "mixture"])
+def test_reproducibility_same_config_and_seed(tmp_path, agent):
     def strip(lines, manifest):
         cleaned = []
         for record in lines:
@@ -115,9 +119,46 @@ def test_reproducibility_same_config_and_seed(tmp_path):
         }
         return cleaned, stable_manifest
 
-    _, lines_a, manifest_a = do_run(tmp_path, "a")
-    _, lines_b, manifest_b = do_run(tmp_path, "b")
+    _, lines_a, manifest_a = do_run(tmp_path, "a", agent=agent)
+    _, lines_b, manifest_b = do_run(tmp_path, "b", agent=agent)
     assert strip(lines_a, manifest_a) == strip(lines_b, manifest_b)
+
+
+def test_mixture_run_logs_multiple_modes(tmp_path):
+    _, lines, manifest = do_run(tmp_path, "a", agent="mixture")
+    assert manifest["config"]["mixture_weights"] == [0.25, 0.25, 0.25, 0.25]
+    modes = {r["mode"] for r in lines if r["type"] == "step"}
+    assert len(modes) > 1
+    assert modes <= {"act", "retrieve", "simulate", "gather_evidence"}
+
+
+def test_retrieve_run_costs_nothing(tmp_path):
+    summary, lines, _ = do_run(tmp_path, "a", agent="retrieve")
+    assert summary.llm_calls == 0
+    assert summary.cost_usd == 0.0
+    assert all(r["cost_usd"] == 0 for r in lines if r["type"] == "step")
+
+
+def test_config_validation_for_agents():
+    with pytest.raises(ValueError):
+        make_config(agent="oracle")
+    with pytest.raises(ValueError):  # weights without mixture
+        RunConfig(
+            env=GridworldConfig(),
+            schedule=ShiftSchedule(version="v"),
+            seed=0,
+            n_episodes=1,
+            mixture_weights=(0.25, 0.25, 0.25, 0.25),
+        )
+    with pytest.raises(ValueError):  # weights must sum to 1
+        RunConfig(
+            env=GridworldConfig(),
+            schedule=ShiftSchedule(version="v"),
+            seed=0,
+            n_episodes=1,
+            agent="mixture",
+            mixture_weights=(0.5, 0.5, 0.5, 0.5),
+        )
 
 
 def test_config_hash_stable_and_sensitive(tmp_path):

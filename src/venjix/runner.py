@@ -6,7 +6,13 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 
-from venjix.agents import ReactiveAgent
+from venjix.agents import (
+    Agent,
+    FixedMixtureAgent,
+    ReactiveAgent,
+    RetrieveOnlyAgent,
+    SimulateOnlyAgent,
+)
 from venjix.config import (
     GridworldConfig,
     PriceTable,
@@ -32,10 +38,22 @@ class RunSummary:
     cost_usd: float
 
 
+def build_agent(config: RunConfig, client: LLMClient) -> Agent:
+    if config.agent == "reactive":
+        return ReactiveAgent(client, config.env)
+    if config.agent == "retrieve":
+        return RetrieveOnlyAgent(config.seed)
+    if config.agent == "simulate":
+        return SimulateOnlyAgent(client, config.env, config.seed, config.sim_depth)
+    return FixedMixtureAgent(
+        client, config.env, config.seed, config.mixture_weights, config.sim_depth
+    )
+
+
 def run(config: RunConfig, client: LLMClient, out_root: str | Path) -> RunSummary:
     env = Gridworld(config.env, config.seed)
     scheduler = ShiftScheduler(config.schedule)
-    agent = ReactiveAgent(client, config.env)
+    agent = build_agent(config, client)
     logger = EpisodeLogger(out_root, config)
 
     global_step = 0
@@ -52,7 +70,9 @@ def run(config: RunConfig, client: LLMClient, out_root: str | Path) -> RunSummar
                 calls0 = client.total_calls
                 in0, out0 = client.total_input_tokens, client.total_output_tokens
                 decision = agent.choose(obs)
+                prev_obs = obs
                 obs = env.step(decision.action)
+                agent.observe(prev_obs, decision.action, obs)
                 wall_ms = now_ms() - t0
 
                 step_in = client.total_input_tokens - in0
@@ -117,6 +137,15 @@ def main() -> None:
     parser.add_argument("--episodes", type=int, default=3)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--size", type=int, default=7)
+    parser.add_argument(
+        "--agent", choices=("reactive", "retrieve", "simulate", "mixture"),
+        default="reactive",
+    )
+    parser.add_argument(
+        "--weights", default=None,
+        help="mixture only: 4 comma-separated weights over act,retrieve,simulate,gather",
+    )
+    parser.add_argument("--sim-depth", type=int, default=3)
     parser.add_argument("--shift-at", type=int, default=25)
     parser.add_argument("--shift-distance", type=int, default=4)
     parser.add_argument("--mock", action="store_true", help="use the offline mock model")
@@ -124,6 +153,9 @@ def main() -> None:
     parser.add_argument("--out", default="runs")
     args = parser.parse_args()
 
+    weights = (
+        tuple(float(w) for w in args.weights.split(",")) if args.weights else None
+    )
     config = RunConfig(
         env=GridworldConfig(size=args.size),
         schedule=ShiftSchedule(
@@ -134,6 +166,9 @@ def main() -> None:
         n_episodes=args.episodes,
         model="mock" if args.mock else args.model,
         prices=PriceTable(),
+        agent=args.agent,
+        mixture_weights=weights,
+        sim_depth=args.sim_depth,
     )
     client: LLMClient = (
         MockModel(seed=args.seed) if args.mock else AnthropicModel(args.model)

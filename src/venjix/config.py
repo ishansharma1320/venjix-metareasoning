@@ -67,6 +67,9 @@ class PriceTable:
         ) / 1_000_000
 
 
+AGENT_TYPES = ("reactive", "retrieve", "simulate", "mixture")
+
+
 @dataclass(frozen=True)
 class RunConfig:
     env: GridworldConfig
@@ -75,6 +78,27 @@ class RunConfig:
     n_episodes: int
     model: str = "claude-haiku-4-5"
     prices: PriceTable = PriceTable()
+    agent: str = "reactive"
+    # weights over (act, retrieve, simulate, gather_evidence); mixture only.
+    # None with agent="mixture" resolves to uniform.
+    mixture_weights: tuple[float, float, float, float] | None = None
+    sim_depth: int = 3
+
+    def __post_init__(self) -> None:
+        if self.agent not in AGENT_TYPES:
+            raise ValueError(f"agent must be one of {AGENT_TYPES}, got {self.agent!r}")
+        if self.sim_depth < 1:
+            raise ValueError(f"sim_depth must be >= 1, got {self.sim_depth}")
+        if self.agent == "mixture":
+            if self.mixture_weights is None:
+                object.__setattr__(self, "mixture_weights", (0.25, 0.25, 0.25, 0.25))
+            weights = self.mixture_weights
+            if len(weights) != 4 or any(w < 0 for w in weights):
+                raise ValueError("mixture_weights must be 4 non-negative floats")
+            if abs(sum(weights) - 1.0) > 1e-9:
+                raise ValueError(f"mixture_weights must sum to 1, got {sum(weights)}")
+        elif self.mixture_weights is not None:
+            raise ValueError("mixture_weights only apply to agent='mixture'")
 
     def to_dict(self) -> dict:
         return asdict(self)

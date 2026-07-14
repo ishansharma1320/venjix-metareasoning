@@ -12,11 +12,24 @@ zero-dependency, and this machine's network blocks PyPI's file host anyway.
 import hashlib
 import json
 import os
+import re
 import urllib.request
 from dataclasses import dataclass
 
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
+
+# World-model prediction prompts start with this marker (see world.py, which
+# imports it — llm.py must not import world.py).
+PREDICT_MARKER = "PREDICT"
+
+_FIELD_RES = {
+    "grid": re.compile(r"GRID:\s*(\d+)"),
+    "pos": re.compile(r"POSITION:\s*\((\d+)\s*,\s*(\d+)\)"),
+    "action": re.compile(r"ACTION:\s*(\w+)"),
+    "goal": re.compile(r"BELIEVED_GOAL:\s*(?:\((\d+)\s*,\s*(\d+)\)|(unknown))"),
+}
+_MOVES = {"up": (-1, 0), "down": (1, 0), "left": (0, -1), "right": (0, 1)}
 
 
 @dataclass(frozen=True)
@@ -64,6 +77,8 @@ class MockModel(LLMClient):
             if not self._scripted:
                 raise RuntimeError("MockModel script exhausted")
             text = self._scripted.pop(0)
+        elif prompt.startswith(PREDICT_MARKER):
+            text = self._predict_reply(prompt)
         else:
             digest = hashlib.sha256(f"{self._seed}:{prompt}".encode()).digest()
             action = self.ACTIONS[int.from_bytes(digest[:4], "big") % len(self.ACTIONS)]
@@ -73,6 +88,28 @@ class MockModel(LLMClient):
             input_tokens=max(1, len(prompt) // 4),
             output_tokens=max(1, len(text) // 4),
         )
+
+    @staticmethod
+    def _predict_reply(prompt: str) -> str:
+        """Answer a world-model prompt as a *competent* model: true clipped
+        dynamics, reward 1 iff the next cell is the stated believed goal.
+        Deterministic and exact so harness tests can assert optimal behavior."""
+        size = int(_FIELD_RES["grid"].search(prompt).group(1))
+        pos_match = _FIELD_RES["pos"].search(prompt)
+        pos = (int(pos_match.group(1)), int(pos_match.group(2)))
+        action = _FIELD_RES["action"].search(prompt).group(1).lower()
+        goal_match = _FIELD_RES["goal"].search(prompt)
+        goal = (
+            None
+            if goal_match.group(3) is not None
+            else (int(goal_match.group(1)), int(goal_match.group(2)))
+        )
+
+        dr, dc = _MOVES.get(action, (0, 0))  # probe/unknown: stay in place
+        last = size - 1
+        next_pos = (min(max(pos[0] + dr, 0), last), min(max(pos[1] + dc, 0), last))
+        reward = 1 if goal is not None and next_pos == goal else 0
+        return f"NEXT: {next_pos} REWARD: {reward}"
 
 
 class AnthropicModel(LLMClient):
