@@ -57,13 +57,15 @@ def test_retrieve_learns_goal_then_fails_after_silent_shift():
     obs, _ = run_episode(env, agent)
     assert obs.success and obs.steps_used == 5
 
-    # Silent shift: the agent walks confidently to the STALE goal and fails.
-    # This is the study's core mechanism appearing in a test.
+    # Silent shift: the agent walks confidently to the STALE goal, finds
+    # nothing, and its own log disproves the belief. With no way to buy
+    # evidence, any recovery is luck-bounded random wandering — for this seed
+    # the episode fails. This is the study's core mechanism appearing in a test.
     env.relocate_goal(4)
     obs, visited = run_episode(env, agent)
     assert (3, 2) in visited  # went straight to the remembered (now empty) cell
-    assert not obs.success  # oscillates near the stale goal until budget death
-    assert agent.memory.believed_goal() == (3, 2)  # belief stays stale
+    assert not obs.success
+    assert agent.memory.believed_goal() != (3, 2)  # stale evidence disproven
 
 
 def test_retrieve_makes_zero_llm_calls():

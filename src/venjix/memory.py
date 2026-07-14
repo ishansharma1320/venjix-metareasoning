@@ -38,11 +38,31 @@ class EpisodicLog:
         return len(self._entries)
 
     def believed_goal(self) -> tuple[int, int] | None:
-        """Most recent direct goal evidence, or None on cold start."""
-        for exp in reversed(self._entries):
+        """Most recent direct goal evidence that the log itself has not
+        disproven, or None.
+
+        Disproof: a LATER entry shows the agent on that exact cell with
+        reward 0 — the evidence is contradicted by the log's own subsequent
+        outcomes. This is a query property, not memory dynamics: the log stays
+        append-only and nothing is decayed, merged, or deleted. Without it,
+        every memory-bearing mode deadlocks on stale evidence after a shift,
+        and arbitration experiments would measure the deadlock instead of
+        arbitration. (O(n^2) worst case; fine at toy-run scale.)
+        """
+        entries = self._entries
+        for i in range(len(entries) - 1, -1, -1):
+            exp = entries[i]
             if exp.reward == 1:
-                return exp.next_pos
-            if isinstance(exp.probe_result, tuple):
+                goal = exp.next_pos
+            elif isinstance(exp.probe_result, tuple):
                 # probe offset is relative to where the agent stood when probing
-                return (exp.pos[0] + exp.probe_result[0], exp.pos[1] + exp.probe_result[1])
+                goal = (exp.pos[0] + exp.probe_result[0], exp.pos[1] + exp.probe_result[1])
+            else:
+                continue
+            disproven = any(
+                later.next_pos == goal and later.reward == 0
+                for later in entries[i + 1 :]
+            )
+            if not disproven:
+                return goal
         return None

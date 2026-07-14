@@ -12,6 +12,7 @@ from venjix.agents import (
     ReactiveAgent,
     RetrieveOnlyAgent,
     SimulateOnlyAgent,
+    ThresholdHeuristicAgent,
 )
 from venjix.config import (
     GridworldConfig,
@@ -45,6 +46,10 @@ def build_agent(config: RunConfig, client: LLMClient) -> Agent:
         return RetrieveOnlyAgent(config.seed)
     if config.agent == "simulate":
         return SimulateOnlyAgent(client, config.env, config.seed, config.sim_depth)
+    if config.agent == "heuristic":
+        return ThresholdHeuristicAgent(
+            client, config.env, config.seed, config.ewma_alpha, config.pe_threshold
+        )
     return FixedMixtureAgent(
         client, config.env, config.seed, config.mixture_weights, config.sim_depth
     )
@@ -96,6 +101,8 @@ def run(config: RunConfig, client: LLMClient, out_root: str | Path) -> RunSummar
                     output_tokens=step_out,
                     cost_usd=step_cost,
                     wall_time_ms=wall_ms,
+                    prediction_error=getattr(agent, "last_prediction_error", None),
+                    signal_ewma=getattr(agent, "signal_value", None),
                 )
                 ep_calls += client.total_calls - calls0
                 ep_in += step_in
@@ -138,9 +145,12 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--size", type=int, default=7)
     parser.add_argument(
-        "--agent", choices=("reactive", "retrieve", "simulate", "mixture"),
+        "--agent",
+        choices=("reactive", "retrieve", "simulate", "mixture", "heuristic"),
         default="reactive",
     )
+    parser.add_argument("--ewma-alpha", type=float, default=0.3)
+    parser.add_argument("--pe-threshold", type=float, default=0.25)
     parser.add_argument(
         "--weights", default=None,
         help="mixture only: 4 comma-separated weights over act,retrieve,simulate,gather",
@@ -169,6 +179,8 @@ def main() -> None:
         agent=args.agent,
         mixture_weights=weights,
         sim_depth=args.sim_depth,
+        ewma_alpha=args.ewma_alpha,
+        pe_threshold=args.pe_threshold,
     )
     client: LLMClient = (
         MockModel(seed=args.seed) if args.mock else AnthropicModel(args.model)

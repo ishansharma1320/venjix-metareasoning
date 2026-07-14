@@ -14,6 +14,7 @@ from venjix.config import GridworldConfig
 from venjix.gridworld import ACTIONS, Observation
 from venjix.llm import LLMClient
 from venjix.memory import EpisodicLog, Experience
+from venjix.signal import EwmaPredictionError
 from venjix.world import WorldModel
 
 MOVE_ACTIONS = ("up", "down", "left", "right")
@@ -170,6 +171,81 @@ class SimulateOnlyAgent(Agent):
         self.memory.append(
             Experience(prev_obs.pos, action, obs.pos, obs.reward, obs.probe_result)
         )
+
+
+class ThresholdHeuristicAgent(Agent):
+    """Rung 3 — the killer baseline. The ENTIRE arbitration logic:
+
+        mode = "gather_evidence" if ewma > threshold
+               else ("retrieve" if memory.believed_goal() else "act")
+
+    Signal per Design decision 2: before acting, one world-model call predicts
+    (next_pos, reward) for the chosen action; after acting, the misprediction
+    is scored binarily and folded into the shared EWMA. That prediction call is
+    the signal's honest per-step cost. probe_result is not part of the scored
+    observation — the world model predicts position and reward only.
+
+    gather_evidence policy: probe unless the previous action was a probe, else
+    a seeded random move — a probe/move sweep, since probing never moves and a
+    pure-probe mode would pin the agent to one cell.
+    """
+
+    def __init__(
+        self,
+        client: LLMClient,
+        env_config: GridworldConfig,
+        seed: int,
+        ewma_alpha: float = 0.3,
+        pe_threshold: float = 0.25,
+    ):
+        self.memory = EpisodicLog()
+        self.world = WorldModel(client, env_config)
+        self.signal = EwmaPredictionError(ewma_alpha)
+        self.pe_threshold = pe_threshold
+        self._act = ReactiveAgent(client, env_config)
+        self._rng = random.Random(seed)
+        self._last_action: str | None = None
+        self._pending_prediction = None
+        # Read by the runner after observe(); null until the first step lands.
+        self.last_prediction_error: int | None = None
+        self.signal_value: float | None = None
+
+    def choose(self, obs: Observation) -> Decision:
+        goal = self.memory.believed_goal()
+        if self.signal.value > self.pe_threshold:
+            mode = "gather_evidence"
+        else:
+            mode = "retrieve" if goal is not None else "act"
+
+        parse_error = False
+        if mode == "gather_evidence":
+            if self._last_action == "probe":
+                action = self._rng.choice(MOVE_ACTIONS)
+            else:
+                action = "probe"
+        elif mode == "retrieve":
+            action = greedy_step(obs.pos, goal) or self._rng.choice(MOVE_ACTIONS)
+        else:
+            act_decision = self._act.choose(obs)
+            action, parse_error = act_decision.action, act_decision.parse_error
+
+        self._pending_prediction = self.world.predict(obs.pos, action, goal)
+        return Decision(mode=mode, action=action, parse_error=parse_error)
+
+    def observe(self, prev_obs: Observation, action: str, obs: Observation) -> None:
+        self.memory.append(
+            Experience(prev_obs.pos, action, obs.pos, obs.reward, obs.probe_result)
+        )
+        self._last_action = action
+        prediction = self._pending_prediction
+        self._pending_prediction = None
+        if prediction is None:
+            return
+        mispredicted = (
+            prediction.next_pos != obs.pos or prediction.reward != obs.reward
+        )
+        self.last_prediction_error = int(mispredicted)
+        self.signal_value = self.signal.update(mispredicted)
 
 
 class FixedMixtureAgent(Agent):

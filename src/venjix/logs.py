@@ -63,6 +63,8 @@ class EpisodeLogger:
         output_tokens: int,
         cost_usd: float,
         wall_time_ms: float,
+        prediction_error: int | None,
+        signal_ewma: float | None,
     ) -> None:
         self._write(
             {
@@ -83,7 +85,10 @@ class EpisodeLogger:
                 "output_tokens": output_tokens,
                 "cost_usd": cost_usd,
                 "wall_time_ms": wall_time_ms,
-                "prediction_error": None,  # reserved for world-model agents
+                # Binary misprediction + the EWMA arbitration signal after this
+                # step's update; null for agents that carry no signal.
+                "prediction_error": prediction_error,
+                "signal_ewma": signal_ewma,
             }
         )
 

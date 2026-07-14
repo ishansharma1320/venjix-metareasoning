@@ -67,7 +67,7 @@ class PriceTable:
         ) / 1_000_000
 
 
-AGENT_TYPES = ("reactive", "retrieve", "simulate", "mixture")
+AGENT_TYPES = ("reactive", "retrieve", "simulate", "mixture", "heuristic")
 
 
 @dataclass(frozen=True)
@@ -83,12 +83,22 @@ class RunConfig:
     # None with agent="mixture" resolves to uniform.
     mixture_weights: tuple[float, float, float, float] | None = None
     sim_depth: int = 3
+    # Arbitration-signal parameters (Design decision 2); consumed by the
+    # heuristic now and the bandit later — identical EWMA for both.
+    ewma_alpha: float = 0.3
+    # Kept below a single misprediction's EWMA value (= ewma_alpha from 0), so
+    # one confident wrong prediction is enough to trigger evidence-gathering.
+    pe_threshold: float = 0.25
 
     def __post_init__(self) -> None:
         if self.agent not in AGENT_TYPES:
             raise ValueError(f"agent must be one of {AGENT_TYPES}, got {self.agent!r}")
         if self.sim_depth < 1:
             raise ValueError(f"sim_depth must be >= 1, got {self.sim_depth}")
+        if not (0.0 < self.ewma_alpha <= 1.0):
+            raise ValueError(f"ewma_alpha must be in (0, 1], got {self.ewma_alpha}")
+        if self.pe_threshold < 0:
+            raise ValueError(f"pe_threshold must be >= 0, got {self.pe_threshold}")
         if self.agent == "mixture":
             if self.mixture_weights is None:
                 object.__setattr__(self, "mixture_weights", (0.25, 0.25, 0.25, 0.25))

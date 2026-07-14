@@ -42,7 +42,7 @@ Public repo + writeup posted by **August 14, 2026**, regardless of outcome.
 - [x] Reactive baseline
 - [x] Episode logging + cost accounting
 - [x] Retrieve-only, simulate-only, fixed-mixture baselines
-- [ ] Threshold heuristic
+- [x] Threshold heuristic
 - [ ] Contextual-bandit arbiter
 - [ ] Shift experiments + plots
 - [ ] Writeup

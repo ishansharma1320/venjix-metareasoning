@@ -44,3 +44,28 @@ def test_most_recent_evidence_wins():
     assert log.believed_goal() == (4, 5)
     log.append(exp((2, 2), next_pos=(2, 3), reward=1))
     assert log.believed_goal() == (2, 3)
+
+
+def test_later_rewardless_visit_disproves_evidence():
+    log = EpisodicLog()
+    log.append(exp((3, 1), next_pos=(3, 2), reward=1))  # goal seen at (3, 2)
+    assert log.believed_goal() == (3, 2)
+    log.append(exp((3, 1), action="right", next_pos=(3, 2), reward=0))  # revisit: empty
+    assert log.believed_goal() is None
+
+
+def test_earlier_visit_does_not_disprove_later_evidence():
+    log = EpisodicLog()
+    log.append(exp((3, 1), action="right", next_pos=(3, 2), reward=0))
+    log.append(exp((3, 1), next_pos=(3, 2), reward=1))
+    assert log.believed_goal() == (3, 2)
+
+
+def test_disproof_falls_back_to_older_undisproven_evidence_and_new_evidence_restores():
+    log = EpisodicLog()
+    log.append(exp((0, 0), action="probe", probe_result=(4, 4)))  # evidence: (4, 4)
+    log.append(exp((3, 1), next_pos=(3, 2), reward=1))  # newer evidence: (3, 2)
+    log.append(exp((3, 1), action="right", next_pos=(3, 2), reward=0))  # disproves (3, 2)
+    assert log.believed_goal() == (4, 4)  # older evidence still stands
+    log.append(exp((2, 2), action="probe", probe_result=(3, 3)))  # fresh evidence
+    assert log.believed_goal() == (5, 5)
