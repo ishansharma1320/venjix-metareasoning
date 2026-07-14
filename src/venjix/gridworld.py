@@ -42,6 +42,10 @@ class Gridworld:
     def __init__(self, config: GridworldConfig, seed: int):
         self.config = config
         self._rng = random.Random(seed)
+        # Dedicated relocation stream (Amendment 6c): shift draws must be
+        # independent of agent state so goal sequences are PAIRED across agents
+        # for the same (config, seed).
+        self._shift_rng = random.Random(f"{seed}-shifts")
         self._pos = config.start
         self._steps_used = 0
         self._done = True  # must reset() before step()
@@ -111,17 +115,22 @@ class Gridworld:
     def relocate_goal(self, distance: int) -> tuple[tuple[int, int], tuple[int, int], int]:
         """Move the goal ~`distance` Manhattan steps; returns (old, new, actual_distance).
 
-        Samples uniformly from in-grid cells at exactly `distance` from the current
-        goal, excluding the goal itself, the agent's cell, and the start cell. If no
-        such cell exists (goal near a corner, oversized distance), falls back to the
-        cells whose distance is closest to the request — for an oversized request
-        that is the maximum achievable distance. The actual distance is returned so
-        the caller can log it; nothing about the shift enters observations.
+        Samples from the dedicated shift RNG (Amendment 6c), uniformly over
+        in-grid cells at exactly `distance` from the current goal, excluding
+        only the old goal and the start cell — never anything derived from
+        agent state, so identical (config, seed, schedule) yields identical
+        goal sequences for every agent. (The goal may therefore land on the
+        agent's current cell; rare, and symmetric across paired runs.) If the
+        exact ring is empty (corner + oversized distance), falls back to the
+        cells whose distance is closest to the request — for an oversized
+        request that is the maximum achievable distance. The actual distance is
+        returned so the caller can log it; nothing about the shift enters
+        observations.
         """
         if distance < 1:
             raise ValueError(f"relocation distance must be >= 1, got {distance}")
         size = self.config.size
-        excluded = {self._goal, self._pos, self.config.start}
+        excluded = {self._goal, self.config.start}
         candidates = [
             (r, c)
             for r in range(size)
@@ -135,5 +144,5 @@ class Gridworld:
             if abs(_manhattan(self._goal, cell) - distance) == best_gap
         ]
         old_goal = self._goal
-        self._goal = self._rng.choice(ring)
+        self._goal = self._shift_rng.choice(ring)
         return old_goal, self._goal, _manhattan(old_goal, self._goal)

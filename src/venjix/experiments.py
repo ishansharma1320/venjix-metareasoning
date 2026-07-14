@@ -42,6 +42,7 @@ def conditions(spec: dict, agents: list[str] | None = None) -> list[Condition]:
     if agents is None:
         agents = [a for a in spec["agents"] if a in AGENT_TYPES]
     params = spec["agent_params"]
+    prices = PriceTable(**spec["prices"]) if "prices" in spec else PriceTable()
     result = []
     for regime in spec["regimes"]:
         schedule = ShiftSchedule(
@@ -57,7 +58,7 @@ def conditions(spec: dict, agents: list[str] | None = None) -> list[Condition]:
                     seed=seed,
                     n_episodes=spec["n_episodes"],
                     model=spec["model"],
-                    prices=PriceTable(),
+                    prices=prices,
                     agent=agent,
                     mixture_weights=(
                         tuple(params["mixture_weights"]) if agent == "mixture" else None

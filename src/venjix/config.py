@@ -53,12 +53,14 @@ class ShiftSchedule:
 
 @dataclass(frozen=True)
 class PriceTable:
-    """Synthetic price table (Design decision 1). Defaults are claude-haiku-4-5's
-    real API prices as of July 2026. The same table prices the mock model so
-    mock-mode comparisons stay meaningful. Wall time is logged, never priced."""
+    """Synthetic price table (Design decision 1). Defaults are a market-rate
+    proxy for the chosen ~8B open model served on vLLM (Amendment 6a); the old
+    claude-haiku-4-5 table ($1/$5) is the registered sensitivity alternate.
+    The same table prices the mock model so mock-mode comparisons stay
+    meaningful. Wall time is logged, never priced."""
 
-    input_per_mtok_usd: float = 1.00
-    output_per_mtok_usd: float = 5.00
+    input_per_mtok_usd: float = 0.10
+    output_per_mtok_usd: float = 0.30
 
     def cost_usd(self, input_tokens: int, output_tokens: int) -> float:
         return (
@@ -76,7 +78,7 @@ class RunConfig:
     schedule: ShiftSchedule
     seed: int
     n_episodes: int
-    model: str = "claude-haiku-4-5"
+    model: str = "Qwen/Qwen3-8B"
     prices: PriceTable = PriceTable()
     agent: str = "reactive"
     # weights over (act, retrieve, simulate, gather_evidence); mixture only.

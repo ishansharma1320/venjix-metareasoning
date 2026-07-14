@@ -173,7 +173,7 @@ def main() -> None:
     parser.add_argument("--shift-at", type=int, default=25)
     parser.add_argument("--shift-distance", type=int, default=4)
     parser.add_argument("--mock", action="store_true", help="use the offline mock model")
-    parser.add_argument("--model", default="claude-haiku-4-5")
+    parser.add_argument("--model", default="Qwen/Qwen3-8B")
     parser.add_argument("--out", default="runs")
     args = parser.parse_args()
 

@@ -161,6 +161,34 @@ before rung 4. Git history timestamps them. The writeup must report all three.
    condition's `config_hash`; no experiment results existed, and hashes are final from
    this commit on.
 
+6. **Amendment 6 (2026-07-14) — final registration items; the registration is CLOSED
+   after this commit.** Zero experiment-set runs have been executed.
+   - **(a) Model swap: `claude-haiku-4-5` → `Qwen/Qwen3-8B` served on vLLM.** The
+     hypothesis is about arbitration over modes, not about any particular model's
+     quality, so it is model-agnostic; an open 8B model self-served on vLLM gives the
+     throughput and cost profile 600 conditions need (no provider rate limits, no
+     per-call billing risk). Dollar accounting uses a market-rate proxy price table of
+     $0.10 input / $0.30 output per MTok (typical serverless pricing for ~8B open
+     models); the previous `claude-haiku-4-5` table ($1/$5) is retained as Design
+     decision 1's alternate table for the writeup's sensitivity check.
+   - **(b) Zero-cost metric rule.** Retrieve-only spends $0, making success-per-dollar
+     degenerate (division by zero). The full-roster comparison is therefore presented
+     as a cost-vs-success Pareto plot; the success-per-dollar ratio is reserved for
+     dollar-spending agents. The pre-registered bandit-vs-heuristic criterion
+     (Design decision 8) is untouched — both agents spend on every step's world-model
+     call, so their ratio is well-defined.
+   - **(c) Pairing: relocations are drawn from a dedicated RNG independent of agent
+     state.** Previously relocation draws consumed the env RNG and excluded the
+     agent's current cell, so the goal sequence depended on agent behavior — unpaired
+     comparisons and an agent→environment leak. Now a dedicated stream (seeded from
+     the run seed) draws relocations, excluding only the old goal and the start cell.
+     Goal sequences are identical across agents for the same (regime, seed): paired
+     comparisons, lower variance. The analysis path must assert shift-count equality
+     and goal-sequence prefix consistency across agents per (regime, seed), loudly
+     flagging conditions where an efficient agent finished before late shifts fired.
+   - RunConfig default-model and price changes move every condition's `config_hash`
+     one final time; hashes are frozen from this commit forward.
+
 ## Deadline
 
 Public repo + writeup posted by **August 14, 2026**, regardless of which baseline wins.

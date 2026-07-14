@@ -52,17 +52,29 @@ def test_oversized_distance_falls_back_to_max_achievable():
     assert actual == max_achievable == _manhattan(old_goal, new_goal)
 
 
-def test_relocation_never_lands_on_agent_start_or_old_goal():
-    # Agent at (2, 1), goal (2, 2), distance 1: the ring is {(1, 2), (2, 1), (2, 3)-oob...}
-    # minus the agent's cell — every legal outcome avoids agent, start, and old goal.
+def test_relocation_never_lands_on_start_or_old_goal():
+    # Goal (2, 2), distance 1 on a 3x3 grid: in-grid ring is {(1, 2), (2, 1)}.
+    # Amendment 6c: only the old goal and start are excluded — never anything
+    # derived from agent state (the agent's cell IS a legal landing spot).
     for seed in range(50):
         env = Gridworld(GridworldConfig(size=3, start=(0, 0), goal=(2, 2)), seed=seed)
         env.reset()
-        env.step("down"), env.step("down"), env.step("right")  # agent -> (2, 1)
-        assert env._pos == (2, 1)
         old_goal, new_goal, actual = env.relocate_goal(1)
-        assert new_goal not in {(2, 1), (0, 0), old_goal}
+        assert new_goal in {(1, 2), (2, 1)}
+        assert new_goal not in {(0, 0), old_goal}
         assert actual == 1
+
+
+def test_relocation_is_independent_of_agent_position():
+    # Amendment 6c: identical (config, seed) must yield identical goal
+    # sequences no matter what the agent did — the pairing property.
+    config = GridworldConfig(size=7, goal=(3, 3))
+    env_a, env_b = Gridworld(config, seed=9), Gridworld(config, seed=9)
+    env_a.reset(), env_b.reset()
+    for action in ("down", "down", "right", "down"):  # only env_a's agent moves
+        env_a.step(action)
+    for distance in (3, 5, 2):
+        assert env_a.relocate_goal(distance) == env_b.relocate_goal(distance)
 
 
 def test_full_run_reproducibility():
