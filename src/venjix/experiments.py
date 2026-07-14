@@ -82,7 +82,9 @@ def main() -> None:
     parser.add_argument("--regime")
     parser.add_argument("--agent")
     parser.add_argument("--seed", type=int)
-    parser.add_argument("--mock", action="store_true")
+    parser.add_argument("--mock", action="store_true", help="shortcut for --backend mock")
+    parser.add_argument("--backend", choices=("mock", "vllm", "anthropic"), default=None)
+    parser.add_argument("--base-url", default=None)
     parser.add_argument("--out", default="runs")
     args = parser.parse_args()
 
@@ -108,13 +110,12 @@ def main() -> None:
         raise SystemExit(f"no condition ({args.regime}, {args.agent}, {args.seed})")
     condition = matches[0]
 
-    from venjix.llm import AnthropicModel, MockModel
+    from venjix.llm import make_client
     from venjix.runner import run
 
-    client = (
-        MockModel(seed=condition.seed)
-        if args.mock
-        else AnthropicModel(condition.config.model)
+    backend = args.backend or ("mock" if args.mock else "vllm")
+    client = make_client(
+        backend, condition.config.model, seed=condition.seed, base_url=args.base_url
     )
     summary = run(condition.config, client, args.out)
     print(

@@ -30,6 +30,7 @@ _FIELD_RES = {
     "goal": re.compile(r"BELIEVED_GOAL:\s*(?:\((\d+)\s*,\s*(\d+)\)|(unknown))"),
 }
 _MOVES = {"up": (-1, 0), "down": (1, 0), "left": (0, -1), "right": (0, 1)}
+_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 
 
 @dataclass(frozen=True)
@@ -110,6 +111,80 @@ class MockModel(LLMClient):
         next_pos = (min(max(pos[0] + dr, 0), last), min(max(pos[1] + dc, 0), last))
         reward = 1 if goal is not None and next_pos == goal else 0
         return f"NEXT: {next_pos} REWARD: {reward}"
+
+
+class OpenAICompatibleClient(LLMClient):
+    """Chat-completions client for vLLM-served open models (Amendment 6a) —
+    or any OpenAI-compatible endpoint. Same counter interface as the rest;
+    vLLM returns usage on every response. temperature=0 for greedy decoding
+    (per-call determinism is still not guaranteed under server batching —
+    reproducibility tests run on the mock only).
+
+    Reasoning-tuned models (e.g. Qwen3) may emit <think>...</think> traces;
+    they are stripped before parsing so an action word mentioned inside the
+    reasoning cannot hijack the policy parser. Prefer serving with thinking
+    disabled anyway (vLLM: --chat-template-kwargs '{"enable_thinking": false}').
+    """
+
+    def __init__(
+        self,
+        model: str,
+        base_url: str | None = None,
+        api_key: str | None = None,
+        max_tokens: int = 256,
+        timeout: float = 120.0,
+    ):
+        super().__init__()
+        base = (
+            base_url
+            or os.environ.get("OPENAI_BASE_URL")
+            or "http://localhost:8000"
+        ).rstrip("/")
+        self.url = f"{base}/v1/chat/completions"
+        self.model = model
+        self.max_tokens = max_tokens
+        self.timeout = timeout
+        self._api_key = api_key or os.environ.get("OPENAI_API_KEY", "EMPTY")
+
+    def _complete(self, prompt: str) -> LLMResponse:
+        body = json.dumps(
+            {
+                "model": self.model,
+                "max_tokens": self.max_tokens,
+                "temperature": 0,
+                "messages": [{"role": "user", "content": prompt}],
+            }
+        ).encode()
+        request = urllib.request.Request(
+            self.url,
+            data=body,
+            headers={
+                "content-type": "application/json",
+                "authorization": f"Bearer {self._api_key}",
+            },
+        )
+        with urllib.request.urlopen(request, timeout=self.timeout) as raw:
+            payload = json.load(raw)
+        text = payload["choices"][0]["message"]["content"] or ""
+        text = _THINK_RE.sub("", text).strip()
+        usage = payload["usage"]
+        return LLMResponse(
+            text=text,
+            input_tokens=usage["prompt_tokens"],
+            output_tokens=usage["completion_tokens"],
+        )
+
+
+def make_client(
+    backend: str, model: str, seed: int = 0, base_url: str | None = None
+) -> LLMClient:
+    if backend == "mock":
+        return MockModel(seed=seed)
+    if backend == "anthropic":
+        return AnthropicModel(model)
+    if backend == "vllm":
+        return OpenAICompatibleClient(model, base_url=base_url)
+    raise ValueError(f"unknown backend {backend!r}")
 
 
 class AnthropicModel(LLMClient):

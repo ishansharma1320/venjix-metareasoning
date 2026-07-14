@@ -23,7 +23,7 @@ from venjix.config import (
     ShiftSchedule,
 )
 from venjix.gridworld import Gridworld
-from venjix.llm import AnthropicModel, LLMClient, MockModel
+from venjix.llm import LLMClient, make_client
 from venjix.logs import EpisodeLogger, now_ms
 from venjix.shifts import ShiftScheduler
 
@@ -172,11 +172,17 @@ def main() -> None:
     parser.add_argument("--sim-depth", type=int, default=3)
     parser.add_argument("--shift-at", type=int, default=25)
     parser.add_argument("--shift-distance", type=int, default=4)
-    parser.add_argument("--mock", action="store_true", help="use the offline mock model")
+    parser.add_argument("--mock", action="store_true", help="shortcut for --backend mock")
+    parser.add_argument(
+        "--backend", choices=("mock", "vllm", "anthropic"), default=None,
+        help="default: vllm (mock with --mock)",
+    )
+    parser.add_argument("--base-url", default=None, help="OpenAI-compatible endpoint")
     parser.add_argument("--model", default="Qwen/Qwen3-8B")
     parser.add_argument("--out", default="runs")
     args = parser.parse_args()
 
+    backend = args.backend or ("mock" if args.mock else "vllm")
     weights = (
         tuple(float(w) for w in args.weights.split(",")) if args.weights else None
     )
@@ -188,7 +194,7 @@ def main() -> None:
         ),
         seed=args.seed,
         n_episodes=args.episodes,
-        model="mock" if args.mock else args.model,
+        model="mock" if backend == "mock" else args.model,
         prices=PriceTable(),
         agent=args.agent,
         mixture_weights=weights,
@@ -198,9 +204,7 @@ def main() -> None:
         ucb_alpha=args.ucb_alpha,
         cost_weight=args.cost_weight,
     )
-    client: LLMClient = (
-        MockModel(seed=args.seed) if args.mock else AnthropicModel(args.model)
-    )
+    client = make_client(backend, args.model, seed=args.seed, base_url=args.base_url)
     summary = run(config, client, args.out)
     print(
         f"run: {summary.run_dir}\n"
