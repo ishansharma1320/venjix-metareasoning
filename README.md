@@ -39,8 +39,8 @@ Public repo + writeup posted by **August 14, 2026**, regardless of outcome.
 ## Status
 
 - [x] Environment + shift scheduler (tested)
-- [ ] Reactive baseline
-- [ ] Episode logging + cost accounting
+- [x] Reactive baseline
+- [x] Episode logging + cost accounting
 - [ ] Retrieve-only, simulate-only, fixed-mixture baselines
 - [ ] Threshold heuristic
 - [ ] Contextual-bandit arbiter

@@ -1,6 +1,8 @@
 """Configuration dataclasses. Frozen so a config can never drift mid-run."""
 
-from dataclasses import dataclass, field
+import hashlib
+import json
+from dataclasses import asdict, dataclass, field
 
 
 @dataclass(frozen=True)
@@ -47,3 +49,36 @@ class ShiftSchedule:
         for e in self.entries:
             if e.distance < 1:
                 raise ValueError(f"shift distance must be >= 1, got {e.distance}")
+
+
+@dataclass(frozen=True)
+class PriceTable:
+    """Synthetic price table (Design decision 1). Defaults are claude-haiku-4-5's
+    real API prices as of July 2026. The same table prices the mock model so
+    mock-mode comparisons stay meaningful. Wall time is logged, never priced."""
+
+    input_per_mtok_usd: float = 1.00
+    output_per_mtok_usd: float = 5.00
+
+    def cost_usd(self, input_tokens: int, output_tokens: int) -> float:
+        return (
+            input_tokens * self.input_per_mtok_usd
+            + output_tokens * self.output_per_mtok_usd
+        ) / 1_000_000
+
+
+@dataclass(frozen=True)
+class RunConfig:
+    env: GridworldConfig
+    schedule: ShiftSchedule
+    seed: int
+    n_episodes: int
+    model: str = "claude-haiku-4-5"
+    prices: PriceTable = PriceTable()
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+    def config_hash(self) -> str:
+        canonical = json.dumps(self.to_dict(), sort_keys=True)
+        return hashlib.sha256(canonical.encode()).hexdigest()
