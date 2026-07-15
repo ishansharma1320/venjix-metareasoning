@@ -13,6 +13,9 @@ import hashlib
 import json
 import os
 import re
+import ssl
+import time
+import urllib.error
 import urllib.request
 from dataclasses import dataclass
 
@@ -31,6 +34,29 @@ _FIELD_RES = {
 }
 _MOVES = {"up": (-1, 0), "down": (1, 0), "left": (0, -1), "right": (0, 1)}
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+
+
+def _strip_thinking(text: str) -> str:
+    """Remove <think> traces — including an UNCLOSED trace from a response
+    truncated mid-reasoning (everything from '<think>' onward is dropped), so
+    reasoning text can never reach the action parser."""
+    text = _THINK_RE.sub("", text)
+    return text.split("<think>")[0].strip()
+
+
+def _extract_text(message: dict) -> str:
+    """Assistant text from a chat-completions message.
+
+    vLLM servers running a reasoning parser (e.g. --reasoning-parser qwen3)
+    can return content=null with the ENTIRE answer in reasoning_content — even
+    when the request disables thinking (observed live on Qwen3-4B). Prefer
+    content; fall back to reasoning_content only when content is empty. We
+    always request thinking off, so the fallback carries the short final
+    answer, and the think-strip guards the truncated-trace case regardless."""
+    text = _strip_thinking(message.get("content") or "")
+    if text:
+        return text
+    return _strip_thinking(message.get("reasoning_content") or "")
 
 
 @dataclass(frozen=True)
@@ -153,6 +179,10 @@ class OpenAICompatibleClient(LLMClient):
                 "max_tokens": self.max_tokens,
                 "temperature": 0,
                 "messages": [{"role": "user", "content": prompt}],
+                # vLLM-standard: disables Qwen3-style thinking, which otherwise
+                # burns the whole token budget on a truncated <think> trace and
+                # returns empty content. Ignored by templates without the kwarg.
+                "chat_template_kwargs": {"enable_thinking": False},
             }
         ).encode()
         request = urllib.request.Request(
@@ -165,13 +195,105 @@ class OpenAICompatibleClient(LLMClient):
         )
         with urllib.request.urlopen(request, timeout=self.timeout) as raw:
             payload = json.load(raw)
-        text = payload["choices"][0]["message"]["content"] or ""
-        text = _THINK_RE.sub("", text).strip()
+        text = _extract_text(payload["choices"][0]["message"])
         usage = payload["usage"]
         return LLMResponse(
             text=text,
             input_tokens=usage["prompt_tokens"],
             output_tokens=usage["completion_tokens"],
+        )
+
+
+class VastServerlessClient(LLMClient):
+    """Vast.ai serverless wrapper around a vLLM worker (two-hop protocol):
+
+    1. POST https://run.vast.ai/route/ with {endpoint, api_key, cost} — returns
+       the worker URL plus a one-time signature, so a fresh route is fetched
+       for every call.
+    2. POST {worker}/v1/chat/completions with the signed route passed through
+       as `auth_data` and the standard OpenAI/vLLM payload under `payload`.
+       Workers use a self-signed cert, so TLS verification is disabled for the
+       worker hop only (the route hop verifies normally).
+
+    `cost` is Vast's per-request cost claim, sized to max_tokens as in their
+    examples. Transient failures (route or worker) retry with backoff — one
+    dead step would otherwise kill a whole 40-episode condition. Same counter
+    interface and <think>-stripping as the other clients.
+    """
+
+    ROUTE_URL = "https://run.vast.ai/route/"
+
+    def __init__(
+        self,
+        model: str,
+        endpoint: str | None = None,
+        api_key: str | None = None,
+        max_tokens: int = 256,
+        timeout: float = 120.0,
+        retries: int = 3,
+    ):
+        super().__init__()
+        self.model = model
+        self.endpoint = endpoint or os.environ.get("VAST_ENDPOINT", "qwen-llm")
+        self._api_key = api_key or os.environ.get("VAST_API_KEY")
+        if not self._api_key:
+            raise ValueError("no Vast API key: pass api_key or set VAST_API_KEY")
+        self.max_tokens = max_tokens
+        self.timeout = timeout
+        self.retries = retries
+        self._worker_ctx = ssl.create_default_context()
+        self._worker_ctx.check_hostname = False
+        self._worker_ctx.verify_mode = ssl.CERT_NONE
+
+    def _post_json(self, url: str, body: dict, context: ssl.SSLContext | None = None) -> dict:
+        request = urllib.request.Request(
+            url,
+            data=json.dumps(body).encode(),
+            headers={"content-type": "application/json"},
+        )
+        with urllib.request.urlopen(request, timeout=self.timeout, context=context) as raw:
+            return json.load(raw)
+
+    def _complete(self, prompt: str) -> LLMResponse:
+        last_error: Exception | None = None
+        for attempt in range(self.retries):
+            try:
+                route = self._post_json(
+                    self.ROUTE_URL,
+                    {
+                        "endpoint": self.endpoint,
+                        "api_key": self._api_key,
+                        "cost": self.max_tokens,
+                    },
+                )
+                payload = self._post_json(
+                    f"{route['url'].rstrip('/')}/v1/chat/completions",
+                    {
+                        "auth_data": route,  # signed route, passed through as-is
+                        "payload": {
+                            "model": self.model,
+                            "max_tokens": self.max_tokens,
+                            "temperature": 0,
+                            "messages": [{"role": "user", "content": prompt}],
+                            # see OpenAICompatibleClient: keep Qwen3 thinking off
+                            "chat_template_kwargs": {"enable_thinking": False},
+                        },
+                    },
+                    context=self._worker_ctx,
+                )
+                text = _extract_text(payload["choices"][0]["message"])
+                usage = payload["usage"]
+                return LLMResponse(
+                    text=text,
+                    input_tokens=usage["prompt_tokens"],
+                    output_tokens=usage["completion_tokens"],
+                )
+            except (urllib.error.URLError, OSError, KeyError, json.JSONDecodeError) as exc:
+                last_error = exc
+                if attempt < self.retries - 1:
+                    time.sleep(2.0**attempt)
+        raise RuntimeError(
+            f"vast call failed after {self.retries} attempts: {last_error!r}"
         )
 
 
@@ -184,6 +306,8 @@ def make_client(
         return AnthropicModel(model)
     if backend == "vllm":
         return OpenAICompatibleClient(model, base_url=base_url)
+    if backend == "vast":
+        return VastServerlessClient(model)
     raise ValueError(f"unknown backend {backend!r}")
 
 

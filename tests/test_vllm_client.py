@@ -17,21 +17,24 @@ def fake_response(payload):
     return Ctx()
 
 
-def payload_with(content):
+def payload_with(content, reasoning_content=None):
+    message = {"content": content}
+    if reasoning_content is not None:
+        message["reasoning_content"] = reasoning_content
     return {
-        "choices": [{"message": {"content": content}}],
+        "choices": [{"message": message}],
         "usage": {"prompt_tokens": 42, "completion_tokens": 7},
     }
 
 
-def call(client, prompt, content):
+def call(client, prompt, content, reasoning_content=None):
     captured = {}
 
     def fake_urlopen(request, timeout=None):
         captured["url"] = request.full_url
         captured["body"] = json.loads(request.data)
         captured["auth"] = request.get_header("Authorization")
-        return fake_response(payload_with(content))
+        return fake_response(payload_with(content, reasoning_content))
 
     with patch("venjix.llm.urllib.request.urlopen", fake_urlopen):
         response = client.complete(prompt)
@@ -64,8 +67,37 @@ def test_think_trace_is_stripped_before_parsing():
     assert parse_action(response.text) == ("left", False)
 
 
+def test_unclosed_think_trace_from_truncation_is_dropped():
+    client = OpenAICompatibleClient("m", base_url="http://x", api_key="k")
+    response, _ = call(
+        client, "p", "<think>maybe up, or down, or maybe I should go right and"
+    )
+    assert response.text == ""  # truncated reasoning can't reach the parser
+    assert parse_action(response.text) == ("probe", True)
+
+
+def test_thinking_disabled_in_request():
+    client = OpenAICompatibleClient("m", base_url="http://x", api_key="k")
+    _, captured = call(client, "p", "up")
+    assert captured["body"]["chat_template_kwargs"] == {"enable_thinking": False}
+
+
 def test_null_content_yields_empty_text():
     client = OpenAICompatibleClient("m", base_url="http://x", api_key="k")
     response, _ = call(client, "p", None)
     assert response.text == ""
     assert parse_action(response.text) == ("probe", True)  # safe fallback path
+
+
+def test_reasoning_parser_misattribution_falls_back_to_reasoning_content():
+    # Observed live: vLLM reasoning parsers return content=null with the whole
+    # (non-thinking) answer in reasoning_content.
+    client = OpenAICompatibleClient("m", base_url="http://x", api_key="k")
+    response, _ = call(client, "p", None, reasoning_content="probe")
+    assert response.text == "probe"
+
+
+def test_content_wins_over_reasoning_content():
+    client = OpenAICompatibleClient("m", base_url="http://x", api_key="k")
+    response, _ = call(client, "p", "down", reasoning_content="ignore this up")
+    assert response.text == "down"

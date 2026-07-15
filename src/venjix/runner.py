@@ -174,7 +174,7 @@ def main() -> None:
     parser.add_argument("--shift-distance", type=int, default=4)
     parser.add_argument("--mock", action="store_true", help="shortcut for --backend mock")
     parser.add_argument(
-        "--backend", choices=("mock", "vllm", "anthropic"), default=None,
+        "--backend", choices=("mock", "vllm", "vast", "anthropic"), default=None,
         help="default: vllm (mock with --mock)",
     )
     parser.add_argument("--base-url", default=None, help="OpenAI-compatible endpoint")
