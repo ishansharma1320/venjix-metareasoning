@@ -234,8 +234,11 @@ class VastServerlessClient(LLMClient):
         api_key: str | None = None,
         max_tokens: int = 256,
         timeout: float = 120.0,
-        retries: int = 3,
+        retries: int = 8,
     ):
+        # retries=8 with exponential backoff gives a ~4-minute window: a cold
+        # or churning serverless worker (route responds without a url while
+        # loading) must not spuriously kill a 40-episode condition mid-run.
         super().__init__()
         self.model = model
         self.endpoint = endpoint or os.environ.get("VAST_ENDPOINT", "qwen-llm")
