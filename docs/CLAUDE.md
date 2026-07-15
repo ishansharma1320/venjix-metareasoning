@@ -169,11 +169,16 @@ before rung 4. Git history timestamps them. The writeup must report all three.
      particular model's quality, so it is model-agnostic; a small open model
      self-served on vLLM gives the throughput and cost profile 600 conditions need (no
      provider rate limits, no per-call billing risk). The substrate is validated by the
-     pre-declared calibration criterion: the calm-state world-model probe
-     (`runs/calibration/20260715T001705-Qwen-Qwen3-4B`, 500 stratified cases) measured
-     a misprediction rate of **0.024, 95% CI [0.012, 0.038] — GREEN** (bands
-     pre-declared: <0.15 GREEN / <0.25 YELLOW / ≥0.25 RED), leaving `pe_threshold =
-     0.25` an order of magnitude of headroom above the noise floor. Dollar accounting
+     pre-declared calibration criterion: the calm-state world-model probe against the
+     FINAL serving config (temperature 0, thinking disabled, guided_regex constrained
+     decoding on world-model calls) — `runs/calibration/20260715T005234-Qwen-Qwen3-4B`,
+     500 stratified cases — measured a misprediction rate of **0.024, 95% CI
+     [0.012, 0.038] — GREEN** (bands pre-declared: <0.15 GREEN / <0.25 YELLOW / ≥0.25
+     RED), leaving `pe_threshold = 0.25` an order of magnitude of headroom above the
+     noise floor. All 15 residual parse failures classify as `out_of_range` (the model
+     names the unclipped boundary-adjacent cell; the parser's bounds check + stay-in-
+     place fallback neutralize it) — zero truncation, zero format drift under
+     constrained decoding. Dollar accounting
      uses a market-rate proxy price table of $0.10 input / $0.30 output per MTok; the
      previous `claude-haiku-4-5` table ($1/$5) is retained as Design decision 1's
      alternate table for the writeup's sensitivity check.
