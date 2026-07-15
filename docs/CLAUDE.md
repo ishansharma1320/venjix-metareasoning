@@ -224,6 +224,13 @@ before rung 4. Git history timestamps them. The writeup must report all three.
      this correction commit**, superseding the same claim in Amendment 6, which was
      voided by the transcription error.
 
+7. **Analysis plan registered pre-data (2026-07-15): see `docs/ANALYSIS.md`.** Governs
+   shift-exposure handling (full-data headline, pre-declared equal-exposure robustness
+   check, shift-indexed mechanism analyses, exposure reported not adjusted), the
+   assertion set the analysis must pass before producing a verdict, and the
+   WIN/MATCHES output. Registered before any real-model experiment-set run existed;
+   may not be revised after the first real run.
+
 ## Deadline
 
 Public repo + writeup posted by **August 14, 2026**, regardless of which baseline wins.
