@@ -57,6 +57,21 @@ class CaseResult:
     pred_reward: int
     parse_error: bool
     mispredicted: bool
+    error_kind: str | None  # None | "extraction" | "out_of_range" (from WorldModel)
+    raw_text: str  # the model's actual reply, for parse-failure classification
+    output_tokens: int  # this call's completion tokens (truncation detection)
+
+
+def classify_parse_error(result: CaseResult, max_tokens: int | None) -> str | None:
+    """Split parse failures: out_of_range (parsed but off-grid) vs the two
+    extraction flavors — truncation (hit the token cap) vs format drift."""
+    if not result.parse_error:
+        return None
+    if result.error_kind == "out_of_range":
+        return "out_of_range"
+    if max_tokens is not None and result.output_tokens >= max_tokens:
+        return "truncation"
+    return "format_drift"
 
 
 def clipped_next(size: int, pos: tuple[int, int], action: str) -> tuple[int, int]:
@@ -158,6 +173,7 @@ def run_probe(cases, client_factory, workers: int = 8):
             world = worlds.setdefault(
                 case.size, WorldModel(client, GridworldConfig(size=case.size))
             )
+            out_tokens_before = client.total_output_tokens
             pred: Prediction = world.predict(case.pos, case.action, case.believed_goal)
             mispredicted = (
                 pred.next_pos != case.truth_next or pred.reward != case.truth_reward
@@ -169,6 +185,9 @@ def run_probe(cases, client_factory, workers: int = 8):
                     pred_reward=pred.reward,
                     parse_error=pred.parse_error,
                     mispredicted=mispredicted,
+                    error_kind=pred.error_kind,
+                    raw_text=pred.raw_text,
+                    output_tokens=client.total_output_tokens - out_tokens_before,
                 )
             )
         return out, client
@@ -180,6 +199,7 @@ def run_probe(cases, client_factory, workers: int = 8):
             usage["llm_calls"] += client.total_calls
             usage["input_tokens"] += client.total_input_tokens
             usage["output_tokens"] += client.total_output_tokens
+            usage["max_tokens_per_call"] = getattr(client, "max_tokens", None)
 
     return [results[i] for i in sorted(results)], usage
 
@@ -220,6 +240,12 @@ def build_report(results, usage, *, model, backend, seed, resamples) -> dict:
         }
 
     parse_errors = sum(r.parse_error for r in results)
+    max_tokens = usage.get("max_tokens_per_call")
+    error_classes = defaultdict(int)
+    for r in results:
+        error_class = classify_parse_error(r, max_tokens)
+        if error_class:
+            error_classes[error_class] += 1
     prices = PriceTable()
     return {
         "probe": "world-model calm-state calibration",
@@ -240,6 +266,13 @@ def build_report(results, usage, *, model, backend, seed, resamples) -> dict:
         "parse_errors": {
             "count": parse_errors,
             "rate": round(parse_errors / len(results), 4) if results else 0.0,
+            # out_of_range = parsed but off-grid; the rest are extraction
+            # failures, split into truncation (hit token cap) vs format drift
+            "classified": {
+                "out_of_range": error_classes["out_of_range"],
+                "truncation": error_classes["truncation"],
+                "format_drift": error_classes["format_drift"],
+            },
         },
         "usage": {**usage, "cost_usd": prices.cost_usd(
             usage["input_tokens"], usage["output_tokens"]
@@ -265,6 +298,12 @@ def write_outputs(out_root, report: dict, results) -> Path:
                 "pred_reward": r.pred_reward,
                 "parse_error": r.parse_error,
                 "mispredicted": r.mispredicted,
+                "error_kind": r.error_kind,
+                "error_class": classify_parse_error(
+                    r, report["usage"].get("max_tokens_per_call")
+                ),
+                "raw_text": r.raw_text,
+                "output_tokens": r.output_tokens,
             }}
             f.write(json.dumps(record, sort_keys=True) + "\n")
     return out_dir

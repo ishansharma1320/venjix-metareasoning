@@ -32,9 +32,9 @@ def test_prompt_contains_current_observation():
     captured = []
 
     class Spy(MockModel):
-        def _complete(self, prompt):
+        def _complete(self, prompt, response_regex=None):
             captured.append(prompt)
-            return super()._complete(prompt)
+            return super()._complete(prompt, response_regex)
 
     config = GridworldConfig(size=5, goal=(4, 4), probe_radius=2)
     env = Gridworld(config, seed=0)

@@ -71,7 +71,7 @@ def test_garbage_replies_score_exactly_like_agents_experience_them():
         true_goal=(4, 4), truth_next=(3, 2), truth_reward=0,
         stratum="interior_move", edge=False, belief="unknown",
     )
-    results, _ = run_probe(
+    results, usage = run_probe(
         [edge, interior],
         lambda: MockModel(scripted=["garbage", "garbage"]),
         workers=1,
@@ -80,6 +80,37 @@ def test_garbage_replies_score_exactly_like_agents_experience_them():
     # fallback = stay-in-place: correct for the clip case, wrong for the move
     assert results[0].mispredicted is False
     assert results[1].mispredicted is True
+    # classification: short garbage = format drift (extraction), not truncation
+    assert all(r.error_kind == "extraction" for r in results)
+    assert all(r.raw_text == "garbage" for r in results)
+    from venjix.calibration import classify_parse_error
+
+    assert classify_parse_error(results[0], usage.get("max_tokens_per_call")) == (
+        "format_drift"
+    )
+
+
+def test_classification_separates_out_of_range_and_truncation():
+    from venjix.calibration import classify_parse_error
+
+    base = Case(
+        idx=0, size=5, pos=(2, 2), action="down", believed_goal=None,
+        true_goal=(4, 4), truth_next=(3, 2), truth_reward=0,
+        stratum="interior_move", edge=False, belief="unknown",
+    )
+
+    def result(error_kind, output_tokens):
+        from venjix.calibration import CaseResult
+
+        return CaseResult(
+            case=base, pred_next=(2, 2), pred_reward=0, parse_error=True,
+            mispredicted=True, error_kind=error_kind, raw_text="x",
+            output_tokens=output_tokens,
+        )
+
+    assert classify_parse_error(result("out_of_range", 10), 256) == "out_of_range"
+    assert classify_parse_error(result("extraction", 256), 256) == "truncation"
+    assert classify_parse_error(result("extraction", 12), 256) == "format_drift"
 
 
 def test_bootstrap_ci_brackets_rate_and_is_seeded():

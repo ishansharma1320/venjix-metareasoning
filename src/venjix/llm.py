@@ -72,14 +72,17 @@ class LLMClient:
         self.total_input_tokens = 0
         self.total_output_tokens = 0
 
-    def complete(self, prompt: str) -> LLMResponse:
-        response = self._complete(prompt)
+    def complete(self, prompt: str, response_regex: str | None = None) -> LLMResponse:
+        """response_regex: optional constrained-decoding pattern. Honored by the
+        vLLM-backed clients (guided_regex); a no-op for mock/anthropic. Used by
+        world-model prediction calls to pin the NEXT/REWARD reply format."""
+        response = self._complete(prompt, response_regex)
         self.total_calls += 1
         self.total_input_tokens += response.input_tokens
         self.total_output_tokens += response.output_tokens
         return response
 
-    def _complete(self, prompt: str) -> LLMResponse:
+    def _complete(self, prompt: str, response_regex: str | None) -> LLMResponse:
         raise NotImplementedError
 
 
@@ -99,7 +102,7 @@ class MockModel(LLMClient):
         self._seed = seed
         self._scripted = list(scripted) if scripted is not None else None
 
-    def _complete(self, prompt: str) -> LLMResponse:
+    def _complete(self, prompt: str, response_regex: str | None = None) -> LLMResponse:
         if self._scripted is not None:
             if not self._scripted:
                 raise RuntimeError("MockModel script exhausted")
@@ -172,19 +175,20 @@ class OpenAICompatibleClient(LLMClient):
         self.timeout = timeout
         self._api_key = api_key or os.environ.get("OPENAI_API_KEY", "EMPTY")
 
-    def _complete(self, prompt: str) -> LLMResponse:
-        body = json.dumps(
-            {
-                "model": self.model,
-                "max_tokens": self.max_tokens,
-                "temperature": 0,
-                "messages": [{"role": "user", "content": prompt}],
-                # vLLM-standard: disables Qwen3-style thinking, which otherwise
-                # burns the whole token budget on a truncated <think> trace and
-                # returns empty content. Ignored by templates without the kwarg.
-                "chat_template_kwargs": {"enable_thinking": False},
-            }
-        ).encode()
+    def _complete(self, prompt: str, response_regex: str | None = None) -> LLMResponse:
+        request_body = {
+            "model": self.model,
+            "max_tokens": self.max_tokens,
+            "temperature": 0,
+            "messages": [{"role": "user", "content": prompt}],
+            # vLLM-standard: disables Qwen3-style thinking, which otherwise
+            # burns the whole token budget on a truncated <think> trace and
+            # returns empty content. Ignored by templates without the kwarg.
+            "chat_template_kwargs": {"enable_thinking": False},
+        }
+        if response_regex is not None:
+            request_body["guided_regex"] = response_regex  # vLLM constrained decoding
+        body = json.dumps(request_body).encode()
         request = urllib.request.Request(
             self.url,
             data=body,
@@ -254,7 +258,17 @@ class VastServerlessClient(LLMClient):
         with urllib.request.urlopen(request, timeout=self.timeout, context=context) as raw:
             return json.load(raw)
 
-    def _complete(self, prompt: str) -> LLMResponse:
+    def _complete(self, prompt: str, response_regex: str | None = None) -> LLMResponse:
+        inner_payload = {
+            "model": self.model,
+            "max_tokens": self.max_tokens,
+            "temperature": 0,
+            "messages": [{"role": "user", "content": prompt}],
+            # see OpenAICompatibleClient: keep Qwen3 thinking off
+            "chat_template_kwargs": {"enable_thinking": False},
+        }
+        if response_regex is not None:
+            inner_payload["guided_regex"] = response_regex  # vLLM constrained decoding
         last_error: Exception | None = None
         for attempt in range(self.retries):
             try:
@@ -270,14 +284,7 @@ class VastServerlessClient(LLMClient):
                     f"{route['url'].rstrip('/')}/v1/chat/completions",
                     {
                         "auth_data": route,  # signed route, passed through as-is
-                        "payload": {
-                            "model": self.model,
-                            "max_tokens": self.max_tokens,
-                            "temperature": 0,
-                            "messages": [{"role": "user", "content": prompt}],
-                            # see OpenAICompatibleClient: keep Qwen3 thinking off
-                            "chat_template_kwargs": {"enable_thinking": False},
-                        },
+                        "payload": inner_payload,
                     },
                     context=self._worker_ctx,
                 )
@@ -323,7 +330,9 @@ class AnthropicModel(LLMClient):
         if not self._api_key:
             raise ValueError("no API key: pass api_key or set ANTHROPIC_API_KEY")
 
-    def _complete(self, prompt: str) -> LLMResponse:
+    def _complete(self, prompt: str, response_regex: str | None = None) -> LLMResponse:
+        # response_regex ignored: the Anthropic API has no guided decoding;
+        # the parser's fallback handles format drift there.
         body = json.dumps(
             {
                 "model": self.model,

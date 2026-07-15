@@ -36,13 +36,24 @@ def test_mock_predicts_reward_at_believed_goal_only():
 def test_garbage_reply_falls_back_to_stay_in_place():
     world, _ = make_world(scripted=["no idea, sorry"])
     prediction = world.predict((2, 2), "down", (4, 4))
-    assert prediction == prediction.__class__((2, 2), 0, True)
+    assert (prediction.next_pos, prediction.reward, prediction.parse_error) == (
+        (2, 2), 0, True,
+    )
+    assert prediction.error_kind == "extraction"
+    assert prediction.raw_text == "no idea, sorry"
 
 
 def test_out_of_bounds_reply_is_a_parse_error():
     world, _ = make_world(scripted=["NEXT: (9, 9) REWARD: 0"])
     prediction = world.predict((2, 2), "down", None)
     assert prediction.next_pos == (2, 2) and prediction.parse_error
+    assert prediction.error_kind == "out_of_range"
+
+
+def test_clean_parse_has_no_error_kind():
+    world, _ = make_world()
+    prediction = world.predict((2, 2), "down", None)
+    assert prediction.error_kind is None and not prediction.parse_error
 
 
 def test_one_llm_call_per_predict():

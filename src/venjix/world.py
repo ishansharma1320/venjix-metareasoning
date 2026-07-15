@@ -19,12 +19,21 @@ from venjix.llm import PREDICT_MARKER, LLMClient
 _NEXT_RE = re.compile(r"NEXT:\s*\((\d+)\s*,\s*(\d+)\)")
 _REWARD_RE = re.compile(r"REWARD:\s*([01])")
 
+# Constrained-decoding pattern for vLLM guided_regex: the reply can ONLY be the
+# exact NEXT/REWARD shape the parser accepts. Kept in lockstep with the parser
+# regexes above.
+PREDICT_RESPONSE_REGEX = r"NEXT: \([0-9]{1,2}, [0-9]{1,2}\) REWARD: [01]"
+
 
 @dataclass(frozen=True)
 class Prediction:
     next_pos: tuple[int, int]
     reward: int
     parse_error: bool
+    # None when parsed cleanly; "extraction" = reply didn't match the format;
+    # "out_of_range" = matched but named a cell outside the grid.
+    error_kind: str | None = None
+    raw_text: str = ""  # for diagnostics (calibration probe); agents ignore it
 
 
 def build_predict_prompt(
@@ -59,15 +68,24 @@ class WorldModel:
         believed_goal: tuple[int, int] | None,
     ) -> Prediction:
         prompt = build_predict_prompt(self.size, pos, action, believed_goal)
-        response = self.client.complete(prompt)
+        response = self.client.complete(prompt, response_regex=PREDICT_RESPONSE_REGEX)
 
         next_match = _NEXT_RE.search(response.text)
         reward_match = _REWARD_RE.search(response.text)
         if next_match is None or reward_match is None:
-            return Prediction(next_pos=pos, reward=0, parse_error=True)
+            return Prediction(
+                next_pos=pos, reward=0, parse_error=True,
+                error_kind="extraction", raw_text=response.text,
+            )
         next_pos = (int(next_match.group(1)), int(next_match.group(2)))
         if not (0 <= next_pos[0] < self.size and 0 <= next_pos[1] < self.size):
-            return Prediction(next_pos=pos, reward=0, parse_error=True)
+            return Prediction(
+                next_pos=pos, reward=0, parse_error=True,
+                error_kind="out_of_range", raw_text=response.text,
+            )
         return Prediction(
-            next_pos=next_pos, reward=int(reward_match.group(1)), parse_error=False
+            next_pos=next_pos,
+            reward=int(reward_match.group(1)),
+            parse_error=False,
+            raw_text=response.text,
         )

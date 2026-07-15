@@ -82,6 +82,22 @@ def test_thinking_disabled_in_request():
     assert captured["body"]["chat_template_kwargs"] == {"enable_thinking": False}
 
 
+def test_response_regex_becomes_guided_decoding():
+    client = OpenAICompatibleClient("m", base_url="http://x", api_key="k")
+    _, captured = call(client, "p", "up")
+    assert "guided_regex" not in captured["body"]  # plain calls unconstrained
+
+    captured2 = {}
+
+    def fake_urlopen(request, timeout=None):
+        captured2["body"] = json.loads(request.data)
+        return fake_response(payload_with("NEXT: (1, 2) REWARD: 0"))
+
+    with patch("venjix.llm.urllib.request.urlopen", fake_urlopen):
+        client.complete("p", response_regex=r"NEXT: \(\d+, \d+\) REWARD: [01]")
+    assert captured2["body"]["guided_regex"] == r"NEXT: \(\d+, \d+\) REWARD: [01]"
+
+
 def test_null_content_yields_empty_text():
     client = OpenAICompatibleClient("m", base_url="http://x", api_key="k")
     response, _ = call(client, "p", None)
