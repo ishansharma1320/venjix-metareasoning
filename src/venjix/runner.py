@@ -178,7 +178,7 @@ def main() -> None:
         help="default: vllm (mock with --mock)",
     )
     parser.add_argument("--base-url", default=None, help="OpenAI-compatible endpoint")
-    parser.add_argument("--model", default="Qwen/Qwen3-8B")
+    parser.add_argument("--model", default="Qwen/Qwen3-4B")
     parser.add_argument("--out", default="runs")
     args = parser.parse_args()
 

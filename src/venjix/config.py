@@ -78,7 +78,7 @@ class RunConfig:
     schedule: ShiftSchedule
     seed: int
     n_episodes: int
-    model: str = "Qwen/Qwen3-8B"
+    model: str = "Qwen/Qwen3-4B"
     prices: PriceTable = PriceTable()
     agent: str = "reactive"
     # weights over (act, retrieve, simulate, gather_evidence); mixture only.

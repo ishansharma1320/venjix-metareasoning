@@ -43,12 +43,12 @@ def call(client, prompt, content, reasoning_content=None):
 
 def test_request_shape_and_usage_mapping():
     client = OpenAICompatibleClient(
-        "Qwen/Qwen3-8B", base_url="http://gpu-box:8000", api_key="k"
+        "Qwen/Qwen3-4B", base_url="http://gpu-box:8000", api_key="k"
     )
     response, captured = call(client, "PROMPT", "I choose down.")
     assert captured["url"] == "http://gpu-box:8000/v1/chat/completions"
     assert captured["auth"] == "Bearer k"
-    assert captured["body"]["model"] == "Qwen/Qwen3-8B"
+    assert captured["body"]["model"] == "Qwen/Qwen3-4B"
     assert captured["body"]["temperature"] == 0
     assert captured["body"]["messages"] == [{"role": "user", "content": "PROMPT"}]
     assert response.text == "I choose down."

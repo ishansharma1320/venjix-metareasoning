@@ -163,14 +163,20 @@ before rung 4. Git history timestamps them. The writeup must report all three.
 
 6. **Amendment 6 (2026-07-14) — final registration items; the registration is CLOSED
    after this commit.** Zero experiment-set runs have been executed.
-   - **(a) Model swap: `claude-haiku-4-5` → `Qwen/Qwen3-8B` served on vLLM.** The
-     hypothesis is about arbitration over modes, not about any particular model's
-     quality, so it is model-agnostic; an open 8B model self-served on vLLM gives the
-     throughput and cost profile 600 conditions need (no provider rate limits, no
-     per-call billing risk). Dollar accounting uses a market-rate proxy price table of
-     $0.10 input / $0.30 output per MTok (typical serverless pricing for ~8B open
-     models); the previous `claude-haiku-4-5` table ($1/$5) is retained as Design
-     decision 1's alternate table for the writeup's sensitivity check.
+   - **(a) Model swap: `claude-haiku-4-5` → `Qwen/Qwen3-4B` served on vLLM**
+     *(model name corrected — see the Correction note below; originally misrecorded as
+     Qwen3-8B).* The hypothesis is about arbitration over modes, not about any
+     particular model's quality, so it is model-agnostic; a small open model
+     self-served on vLLM gives the throughput and cost profile 600 conditions need (no
+     provider rate limits, no per-call billing risk). The substrate is validated by the
+     pre-declared calibration criterion: the calm-state world-model probe
+     (`runs/calibration/20260715T001705-Qwen-Qwen3-4B`, 500 stratified cases) measured
+     a misprediction rate of **0.024, 95% CI [0.012, 0.038] — GREEN** (bands
+     pre-declared: <0.15 GREEN / <0.25 YELLOW / ≥0.25 RED), leaving `pe_threshold =
+     0.25` an order of magnitude of headroom above the noise floor. Dollar accounting
+     uses a market-rate proxy price table of $0.10 input / $0.30 output per MTok; the
+     previous `claude-haiku-4-5` table ($1/$5) is retained as Design decision 1's
+     alternate table for the writeup's sensitivity check.
    - **(b) Zero-cost metric rule.** Retrieve-only spends $0, making success-per-dollar
      degenerate (division by zero). The full-roster comparison is therefore presented
      as a cost-vs-success Pareto plot; the success-per-dollar ratio is reserved for
@@ -187,7 +193,31 @@ before rung 4. Git history timestamps them. The writeup must report all three.
      and goal-sequence prefix consistency across agents per (regime, seed), loudly
      flagging conditions where an efficient agent finished before late shifts fired.
    - RunConfig default-model and price changes move every condition's `config_hash`
-     one final time; hashes are frozen from this commit forward.
+     one final time; hashes are frozen from this commit forward. *(Superseded — see the
+     Correction note below.)*
+
+   **Correction (2026-07-14).** Amendment 6a as originally committed **misnamed the
+   model as `Qwen/Qwen3-8B`**. The deployed, calibration-probed, and intended substrate
+   is **`Qwen/Qwen3-4B`** — a transcription error between the deployment and the
+   registration text, not a change of substrate. Evidence: the serving endpoint has
+   only ever hosted Qwen3-4B, and the calibration report
+   (`runs/calibration/20260715T001705-Qwen-Qwen3-4B`: rate 0.024, CI [0.012, 0.038],
+   GREEN) — run **before any experiment-set run and before this correction** —
+   records the actual substrate. Zero experiment-set runs have been executed. This
+   note exists so the error stays visible; the amendment is not silently rewritten.
+   - The $0.10/$0.30 market-proxy price table is **retained unchanged**: it is a
+     synthetic accounting table per Design decision 1, and if anything it is
+     conservative (over-priced) for a 4B model.
+   - **cost_weight interaction, disclosed:** `cost_weight = 100.0` was frozen
+     (Amendment 5) while the registered price table was still $1/$5; under the
+     $0.10/$0.30 table the bandit's effective cost-aversion is therefore 10× weaker
+     than under the table it was sized against. This is internally consistent — the
+     bandit optimizes exactly the metric the analysis measures, both computed under
+     the registered table — but the price-table-relative meaning of `cost_weight`
+     belongs in the writeup's sensitivity section alongside the alternate table.
+   - The model string moves every condition's `config_hash`; **hashes are final from
+     this correction commit**, superseding the same claim in Amendment 6, which was
+     voided by the transcription error.
 
 ## Deadline
 
