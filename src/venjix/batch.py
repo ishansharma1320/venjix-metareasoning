@@ -28,18 +28,24 @@ from venjix.llm import make_client
 from venjix.runner import run
 
 
-def completed_hashes(out_root: str | Path) -> set[str]:
-    done = set()
+def _run_is_complete(manifest: dict, run_dir: Path) -> bool:
+    """One completeness rule shared by resume and pairing verification: the
+    manifest exists AND episodes.jsonl holds the full episode count. Partial
+    dirs (instance died mid-run) fail this and are re-run / ignored."""
+    jsonl = run_dir / "episodes.jsonl"
+    if not jsonl.exists():
+        return False
+    episodes = sum(1 for line in jsonl.open() if '"type": "episode"' in line)
+    return episodes >= manifest["config"]["n_episodes"]
+
+
+def completed_hashes(out_root: str | Path) -> dict[str, Path]:
+    """config_hash -> run_dir for every COMPLETE run under out_root."""
+    done: dict[str, Path] = {}
     for manifest_path in Path(out_root).glob("*/manifest.json"):
         manifest = json.loads(manifest_path.read_text())
-        jsonl = manifest_path.parent / "episodes.jsonl"
-        if not jsonl.exists():
-            continue
-        episodes = sum(
-            1 for line in jsonl.open() if '"type": "episode"' in line
-        )
-        if episodes >= manifest["config"]["n_episodes"]:
-            done.add(manifest["config_hash"])
+        if _run_is_complete(manifest, manifest_path.parent):
+            done[manifest["config_hash"]] = manifest_path.parent
     return done
 
 
@@ -80,11 +86,19 @@ def run_batch(
     return completed, failures
 
 
-def verify_pairing(out_root: str | Path) -> tuple[list[str], list[str]]:
-    """Returns (count_mismatches, prefix_divergences) — see module docstring."""
+def verify_pairing(out_root: str | Path) -> tuple[list[str], list[str], int]:
+    """Returns (count_mismatches, prefix_divergences, ignored_incomplete).
+
+    Partial run dirs (mid-run death, since re-run) are ignored — otherwise a
+    partial and its complete re-run collide in the same (regime, seed, agent)
+    slot and glob order decides which one gets compared."""
+    ignored_incomplete = 0
     groups: dict[tuple, dict[str, list]] = defaultdict(dict)
     for manifest_path in Path(out_root).glob("*/manifest.json"):
         manifest = json.loads(manifest_path.read_text())
+        if not _run_is_complete(manifest, manifest_path.parent):
+            ignored_incomplete += 1
+            continue
         config = manifest["config"]
         key = (config["schedule"]["version"], config["seed"])
         shifts = []
@@ -113,7 +127,7 @@ def verify_pairing(out_root: str | Path) -> tuple[list[str], list[str]]:
                 prefix_divergences.append(
                     f"{key}: {agent} goal sequence diverges from the paired prefix"
                 )
-    return count_mismatches, prefix_divergences
+    return count_mismatches, prefix_divergences, ignored_incomplete
 
 
 def main() -> None:
@@ -141,11 +155,22 @@ def main() -> None:
             and (args.seeds is None or c.seed < args.seeds)
         ]
         done = completed_hashes(args.out)
-        todo = [c for c in selected if c.config.config_hash() not in done]
+        todo, skipped = [], []
+        for condition in selected:
+            run_dir = done.get(condition.config.config_hash())
+            if run_dir is None:
+                todo.append(condition)
+            else:
+                skipped.append((condition, run_dir))
+        for condition, run_dir in skipped:
+            print(
+                f"skip (complete) {condition.regime}/{condition.agent}/"
+                f"seed{condition.seed} -> {run_dir}"
+            )
         print(
-            f"{len(selected)} conditions selected, {len(selected) - len(todo)} "
-            f"already complete, {len(todo)} to run ({args.backend}, "
-            f"{args.workers} workers)"
+            f"{len(selected)} conditions selected, {len(skipped)} already "
+            f"complete (skipped above), {len(todo)} to run "
+            f"({args.backend}, {args.workers} workers)"
         )
         _, failures = run_batch(
             todo, args.out, args.backend, args.base_url, args.workers
@@ -155,7 +180,12 @@ def main() -> None:
             for failure in failures:
                 print(" ", failure)
 
-    count_mismatches, prefix_divergences = verify_pairing(args.out)
+    count_mismatches, prefix_divergences, ignored_incomplete = verify_pairing(args.out)
+    if ignored_incomplete:
+        print(
+            f"\n{ignored_incomplete} incomplete run dir(s) ignored by pairing "
+            f"verification (mid-run deaths; their conditions were re-run)"
+        )
     if prefix_divergences:
         print("\nPAIRING BROKEN (bug — paired-RNG guarantee violated):")
         for violation in prefix_divergences:
