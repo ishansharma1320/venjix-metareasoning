@@ -58,6 +58,17 @@ def run_batch(
 ) -> tuple[int, list[str]]:
     """Run conditions concurrently; returns (completed_count, failures)."""
     Path(out_root).mkdir(parents=True, exist_ok=True)
+    # Longest-job-first: wall clock is bounded by the internally-sequential
+    # heavy conditions (simulate on big grids); start them first so they never
+    # tail the run. Execution order cannot affect results (runs independent).
+    calls_per_step = {
+        "simulate": 13, "bandit": 4, "mixture": 3,
+        "heuristic": 2, "reactive": 1, "retrieve": 0,
+    }
+    todo = sorted(
+        todo,
+        key=lambda c: -(calls_per_step[c.agent] * c.config.env.size),
+    )
     failures = []
     completed = 0
 
