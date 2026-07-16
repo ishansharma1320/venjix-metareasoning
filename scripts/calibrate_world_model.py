@@ -24,7 +24,7 @@ from venjix.llm import make_client
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", required=True, help="exact served model id")
-    parser.add_argument("--backend", choices=("vast", "vllm", "mock"), default="vast")
+    parser.add_argument("--backend", choices=("vast", "vllm", "openrouter", "mock"), default="vast")
     parser.add_argument("--base-url", default=None)
     parser.add_argument("--cases", type=int, default=500)
     parser.add_argument("--workers", type=int, default=8)

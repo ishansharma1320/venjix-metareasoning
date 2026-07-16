@@ -231,6 +231,35 @@ before rung 4. Git history timestamps them. The writeup must report all three.
    WIN/MATCHES output. Registered before any real-model experiment-set run existed;
    may not be revised after the first real run.
 
+8. **Amendment 8 (2026-07-15) — substrate: `Qwen/Qwen3-8B` served via OpenRouter.**
+   Zero experiment-set runs executed. The registered 4B substrate was lost
+   operationally: the self-hosted Vast endpoint died mid-preparation (dead worker,
+   silent recreation, unreliable provisioning), and Qwen3-4B has been delisted from
+   managed serving (verified: absent from the OpenRouter catalog). Selection was a
+   cost-benefit over the catalog — free tiers excluded by rate-limit arithmetic
+   (~1,000 requests/day vs the set's ~1.9M calls), then paid candidates compared on
+   price, provider count, quantization stability, and registration distance.
+   `qwen/qwen3-8b` chosen as the family-minimal step: same family, dense, nearest
+   available size (and the id Amendment 6a originally recorded).
+   - **Serving config**: OpenRouter, provider pinned to Alibaba (single provider =
+     one quantization for the whole run), temperature 0, seed 0, reasoning disabled
+     via OpenRouter's normalized field. `guided_regex` does not exist on this path;
+     format robustness rests on the parser's bounds check + stay-in-place fallback
+     (measured benign in the v1 probe).
+   - **Prices become the real per-token prices of the chosen serving path** per
+     Design decision 1: $0.117 input / $0.455 output per MTok (projected set cost
+     ≈ $32). The haiku table stays the sensitivity alternate. The `cost_weight`
+     disclosure in the Amendment 6 Correction applies with the new denominator.
+   - **Calibration probe (the pre-declared gate) re-run against this exact config:**
+     `runs/calibration/20260716T185958-Qwen-Qwen3-8B` (500 stratified cases) —
+     misprediction rate **0.030, 95% CI [0.016, 0.046] — GREEN**, ~8× headroom under
+     `pe_threshold = 0.25`. All 28 parse failures classify as `out_of_range`
+     (unclipped boundary cell; format-perfect replies; every one neutralized by the
+     bounds check + stay-in-place fallback and scored correct) — zero truncation,
+     zero format drift even without constrained decoding.
+   - Hashes move with model + prices and are final from this commit, superseding
+     prior finality claims.
+
 ## Deadline
 
 Public repo + writeup posted by **August 14, 2026**, regardless of which baseline wins.

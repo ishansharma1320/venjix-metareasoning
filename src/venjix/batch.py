@@ -145,7 +145,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run the frozen experiment set.")
     parser.add_argument("--set", default=str(DEFAULT_SET))
     parser.add_argument(
-        "--backend", choices=("mock", "vllm", "vast", "anthropic"), default="vllm"
+        "--backend", choices=("mock", "vllm", "vast", "openrouter", "anthropic"), default="vllm"
     )
     parser.add_argument("--base-url", default=None)
     parser.add_argument("--workers", type=int, default=8)

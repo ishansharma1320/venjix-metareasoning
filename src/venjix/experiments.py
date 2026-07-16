@@ -84,7 +84,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int)
     parser.add_argument("--mock", action="store_true", help="shortcut for --backend mock")
     parser.add_argument(
-        "--backend", choices=("mock", "vllm", "vast", "anthropic"), default=None
+        "--backend", choices=("mock", "vllm", "vast", "openrouter", "anthropic"), default=None
     )
     parser.add_argument("--base-url", default=None)
     parser.add_argument("--out", default="runs")

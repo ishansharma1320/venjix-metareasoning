@@ -49,14 +49,17 @@ def _extract_text(message: dict) -> str:
 
     vLLM servers running a reasoning parser (e.g. --reasoning-parser qwen3)
     can return content=null with the ENTIRE answer in reasoning_content — even
-    when the request disables thinking (observed live on Qwen3-4B). Prefer
-    content; fall back to reasoning_content only when content is empty. We
-    always request thinking off, so the fallback carries the short final
-    answer, and the think-strip guards the truncated-trace case regardless."""
+    when the request disables thinking (observed live on Qwen3-4B). OpenRouter
+    normalizes the same idea to a "reasoning" field. Prefer content; fall back
+    to the reasoning fields only when content is empty. We always request
+    thinking off, so the fallback carries the short final answer, and the
+    think-strip guards the truncated-trace case regardless."""
     text = _strip_thinking(message.get("content") or "")
     if text:
         return text
-    return _strip_thinking(message.get("reasoning_content") or "")
+    return _strip_thinking(
+        message.get("reasoning_content") or message.get("reasoning") or ""
+    )
 
 
 @dataclass(frozen=True)
@@ -162,7 +165,15 @@ class OpenAICompatibleClient(LLMClient):
         api_key: str | None = None,
         max_tokens: int = 256,
         timeout: float = 120.0,
+        extra_body: dict | None = None,
+        vllm_dialect: bool = True,
+        retries: int = 6,
     ):
+        """vllm_dialect=True sends vLLM-only fields (chat_template_kwargs,
+        guided_regex). Set False for aggregators like OpenRouter, which use
+        their own reasoning-control / provider-pinning fields via extra_body
+        and support no constrained decoding (the parser fallback covers that
+        — measured benign in the v1 calibration probe)."""
         super().__init__()
         base = (
             base_url
@@ -173,6 +184,9 @@ class OpenAICompatibleClient(LLMClient):
         self.model = model
         self.max_tokens = max_tokens
         self.timeout = timeout
+        self.extra_body = extra_body or {}
+        self.vllm_dialect = vllm_dialect
+        self.retries = retries
         self._api_key = api_key or os.environ.get("OPENAI_API_KEY", "EMPTY")
 
     def _complete(self, prompt: str, response_regex: str | None = None) -> LLMResponse:
@@ -181,13 +195,15 @@ class OpenAICompatibleClient(LLMClient):
             "max_tokens": self.max_tokens,
             "temperature": 0,
             "messages": [{"role": "user", "content": prompt}],
+        }
+        if self.vllm_dialect:
             # vLLM-standard: disables Qwen3-style thinking, which otherwise
             # burns the whole token budget on a truncated <think> trace and
             # returns empty content. Ignored by templates without the kwarg.
-            "chat_template_kwargs": {"enable_thinking": False},
-        }
-        if response_regex is not None:
-            request_body["guided_regex"] = response_regex  # vLLM constrained decoding
+            request_body["chat_template_kwargs"] = {"enable_thinking": False}
+            if response_regex is not None:
+                request_body["guided_regex"] = response_regex  # constrained decoding
+        request_body.update(self.extra_body)
         body = json.dumps(request_body).encode()
         request = urllib.request.Request(
             self.url,
@@ -197,8 +213,30 @@ class OpenAICompatibleClient(LLMClient):
                 "authorization": f"Bearer {self._api_key}",
             },
         )
-        with urllib.request.urlopen(request, timeout=self.timeout) as raw:
-            payload = json.load(raw)
+        payload = None
+        last_error: Exception | None = None
+        for attempt in range(self.retries):
+            try:
+                with urllib.request.urlopen(request, timeout=self.timeout) as raw:
+                    payload = json.load(raw)
+                break
+            except urllib.error.HTTPError as exc:
+                # 429/5xx are transient (rate limits, provider hiccups); honor
+                # Retry-After when present, else exponential backoff.
+                if exc.code not in (429, 500, 502, 503, 529):
+                    raise
+                last_error = exc
+                retry_after = exc.headers.get("Retry-After") if exc.headers else None
+                delay = float(retry_after) if retry_after else 2.0**attempt
+                time.sleep(min(delay, 60.0))
+            except (urllib.error.URLError, OSError) as exc:
+                last_error = exc
+                time.sleep(2.0**attempt)
+        if payload is None:
+            raise RuntimeError(
+                f"openai-compatible call failed after {self.retries} attempts: "
+                f"{last_error!r}"
+            )
         text = _extract_text(payload["choices"][0]["message"])
         usage = payload["usage"]
         return LLMResponse(
@@ -316,6 +354,24 @@ def make_client(
         return AnthropicModel(model)
     if backend == "vllm":
         return OpenAICompatibleClient(model, base_url=base_url)
+    if backend == "openrouter":
+        api_key = os.environ.get("OPENROUTER_API_KEY")
+        if not api_key:
+            raise ValueError("no OpenRouter key: set OPENROUTER_API_KEY")
+        return OpenAICompatibleClient(
+            model.lower(),  # HF id "Qwen/Qwen3-8B" -> OpenRouter slug "qwen/qwen3-8b"
+            base_url=base_url or "https://openrouter.ai/api",
+            api_key=api_key,
+            extra_body={
+                # pin serving: one provider = one quantization for the whole
+                # run (substrate identity); thinking off via OpenRouter's
+                # normalized field; fixed seed for determinism-leaning serving
+                "provider": {"only": ["Alibaba"]},
+                "reasoning": {"enabled": False},
+                "seed": 0,
+            },
+            vllm_dialect=False,
+        )
     if backend == "vast":
         return VastServerlessClient(model)
     raise ValueError(f"unknown backend {backend!r}")
