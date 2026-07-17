@@ -177,3 +177,24 @@ def test_content_wins_over_reasoning_content():
     client = OpenAICompatibleClient("m", base_url="http://x", api_key="k")
     response, _ = call(client, "p", "down", reasoning_content="ignore this up")
     assert response.text == "down"
+
+
+def test_openrouter_serving_registry(monkeypatch):
+    from venjix.llm import make_client
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+
+    gemma = make_client("openrouter", "google/gemma-3-4b-it")
+    assert gemma.extra_body["provider"] == {"only": ["DeepInfra"]}
+    assert "reasoning" not in gemma.extra_body  # no reasoning control -> omit
+    assert gemma.vllm_dialect is False
+
+    qwen = make_client("openrouter", "Qwen/Qwen3-8B")  # HF id -> slug
+    assert qwen.model == "qwen/qwen3-8b"
+    assert qwen.extra_body["provider"] == {"only": ["Alibaba"]}
+    assert qwen.extra_body["reasoning"] == {"enabled": False}
+
+    import pytest as _pytest
+
+    with _pytest.raises(ValueError, match="serving registry"):
+        make_client("openrouter", "some/unpinned-model")

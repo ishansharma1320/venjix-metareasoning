@@ -380,18 +380,34 @@ def make_client(
         api_key = os.environ.get("OPENROUTER_API_KEY")
         if not api_key:
             raise ValueError("no OpenRouter key: set OPENROUTER_API_KEY")
+        slug = model.lower()  # HF id "Qwen/Qwen3-8B" -> OpenRouter slug
+        # Pin serving per model: one provider = one quantization for the whole
+        # run (substrate identity). Registry, not guesswork — an unknown model
+        # must be added here (with its pin + reasoning capability) rather than
+        # silently routed to whatever provider OpenRouter picks per call.
+        registry = {
+            "qwen/qwen3-8b": {"provider": "Alibaba", "reasoning_control": True},
+            "google/gemma-3-4b-it": {"provider": "DeepInfra", "reasoning_control": False},
+        }
+        if slug not in registry:
+            raise ValueError(
+                f"{slug!r} not in the OpenRouter serving registry; add its "
+                f"provider pin before running (substrate identity)"
+            )
+        entry = registry[slug]
+        extra_body = {
+            "provider": {"only": [entry["provider"]]},
+            "seed": 0,  # determinism-leaning serving
+        }
+        if entry["reasoning_control"]:
+            # thinking off via OpenRouter's normalized field; only sent to
+            # models that support it (others may 400 on the unknown param)
+            extra_body["reasoning"] = {"enabled": False}
         return OpenAICompatibleClient(
-            model.lower(),  # HF id "Qwen/Qwen3-8B" -> OpenRouter slug "qwen/qwen3-8b"
+            slug,
             base_url=base_url or "https://openrouter.ai/api",
             api_key=api_key,
-            extra_body={
-                # pin serving: one provider = one quantization for the whole
-                # run (substrate identity); thinking off via OpenRouter's
-                # normalized field; fixed seed for determinism-leaning serving
-                "provider": {"only": ["Alibaba"]},
-                "reasoning": {"enabled": False},
-                "seed": 0,
-            },
+            extra_body=extra_body,
             vllm_dialect=False,
         )
     if backend == "vast":

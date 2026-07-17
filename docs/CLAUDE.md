@@ -260,6 +260,25 @@ before rung 4. Git history timestamps them. The writeup must report all three.
    - Hashes move with model + prices and are final from this commit, superseding
      prior finality claims.
 
+9. **Candidate evaluation on record (2026-07-16/17): `google/gemma-3-4b-it` REJECTED
+   by the calibration gate. No substrate change — Amendment 8 stands.**
+   - **Why it was evaluated**: qwen3-8b's sole provider (Alibaba) chronically
+     rate-limits upstream — measured net throughput 4–5 calls/s through sustained 429
+     storms, projecting 5–6 days of run exposure. Candidate burst tests (identical
+     3×32-concurrent probes, same account, same moment) found gemma-3-4b-it via
+     DeepInfra at 30.5 calls/s burst and **102.5 calls/s sustained over 4 minutes
+     (24,668 calls, zero 429s)** — ~20× the throttled rate, ~40% cheaper.
+   - **Why it was rejected**: the pre-declared calibration gate returned **RED**:
+     misprediction rate **0.354, 95% CI [0.312, 0.398]**
+     (`runs/calibration/20260717T035200-google-gemma-3-4b-it`) — a noise floor ABOVE
+     `pe_threshold = 0.25`, meaning the arbitration signal would fire on calm-state
+     noise and the experiment would measure model incompetence, not nonstationarity.
+     Failures: 72 out_of_range + 25 format_drift (19% parse-error rate), 62%
+     misprediction on probe actions. Every operational metric was superior; the
+     substrate is simply not competent at the task. Rejection is exactly the gate's
+     purpose (bands: ≥0.25 RED = substrate fails, escalate deliberately).
+   - Registered substrate, prices, and hashes remain exactly as Amendment 8 set them.
+
 ## Deadline
 
 Public repo + writeup posted by **August 14, 2026**, regardless of which baseline wins.
