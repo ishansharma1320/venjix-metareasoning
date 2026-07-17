@@ -12,6 +12,7 @@ zero-dependency, and this machine's network blocks PyPI's file host anyway.
 import hashlib
 import json
 import os
+import random
 import re
 import ssl
 import sys
@@ -227,16 +228,29 @@ class OpenAICompatibleClient(LLMClient):
                 if exc.code not in (429, 500, 502, 503, 529):
                     raise
                 last_error = exc
+                # Retry-After may be numeric seconds, a date string, or a
+                # nonsense "0" — parse defensively, floor at 1s (never
+                # re-hammer instantly), cap at 60s, else exponential+jitter.
                 retry_after = exc.headers.get("Retry-After") if exc.headers else None
-                delay = float(retry_after) if retry_after else 2.0**attempt
+                try:
+                    delay = float(retry_after)
+                except (TypeError, ValueError):
+                    delay = 2.0**attempt + random.uniform(0, 1)
+                delay = min(max(delay, 1.0), 60.0)
+                reason = ""
+                if attempt == 0:  # show the server's stated reason once
+                    try:
+                        reason = " — " + exc.read()[:140].decode(errors="replace")
+                    except Exception:
+                        pass
                 # visible backpressure signal: rare lines = healthy,
                 # a stream of them = the endpoint is choking on concurrency
                 print(
                     f"[backoff] HTTP {exc.code}, retry {attempt + 1}/{self.retries} "
-                    f"in {min(delay, 60.0):.0f}s",
+                    f"in {delay:.0f}s{reason}",
                     file=sys.stderr,
                 )
-                time.sleep(min(delay, 60.0))
+                time.sleep(delay)
             except (urllib.error.URLError, OSError) as exc:
                 last_error = exc
                 time.sleep(2.0**attempt)

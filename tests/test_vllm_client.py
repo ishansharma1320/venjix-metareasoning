@@ -1,6 +1,9 @@
 import io
 import json
+import urllib.error
 from unittest.mock import patch
+
+import pytest
 
 from venjix.agents import parse_action
 from venjix.llm import OpenAICompatibleClient
@@ -96,6 +99,63 @@ def test_response_regex_becomes_guided_decoding():
     with patch("venjix.llm.urllib.request.urlopen", fake_urlopen):
         client.complete("p", response_regex=r"NEXT: \(\d+, \d+\) REWARD: [01]")
     assert captured2["body"]["guided_regex"] == r"NEXT: \(\d+, \d+\) REWARD: [01]"
+
+
+def make_429(retry_after=None):
+    import email.message
+
+    headers = email.message.Message()
+    if retry_after is not None:
+        headers["Retry-After"] = retry_after
+    return urllib.error.HTTPError(
+        "http://x", 429, "Too Many Requests", headers, io.BytesIO(b'{"error":"rate"}')
+    )
+
+
+def run_with_429s(retry_after, monkeypatch):
+    """First call 429s with the given Retry-After; second succeeds.
+    Returns the delays slept."""
+    slept = []
+    monkeypatch.setattr("venjix.llm.time.sleep", lambda s: slept.append(s))
+    client = OpenAICompatibleClient("m", base_url="http://x", api_key="k")
+    state = {"calls": 0}
+
+    def fake_urlopen(request, timeout=None):
+        state["calls"] += 1
+        if state["calls"] == 1:
+            raise make_429(retry_after)
+        return fake_response(payload_with("up"))
+
+    with patch("venjix.llm.urllib.request.urlopen", fake_urlopen):
+        response = client.complete("p")
+    assert response.text == "up"
+    return slept
+
+
+def test_retry_after_zero_never_rehammers_instantly(monkeypatch):
+    slept = run_with_429s("0", monkeypatch)
+    assert len(slept) == 1 and slept[0] >= 1.0  # floored, no tight loop
+
+
+def test_retry_after_date_string_falls_back_to_backoff(monkeypatch):
+    slept = run_with_429s("Wed, 15 Jul 2026 21:00:00 GMT", monkeypatch)
+    assert len(slept) == 1 and 1.0 <= slept[0] <= 60.0  # no ValueError crash
+
+
+def test_retry_after_numeric_is_honored_and_capped(monkeypatch):
+    assert run_with_429s("7", monkeypatch) == [7.0]
+    assert run_with_429s("500", monkeypatch) == [60.0]  # capped
+
+
+def test_non_retryable_http_error_raises(monkeypatch):
+    client = OpenAICompatibleClient("m", base_url="http://x", api_key="k")
+
+    def fake_urlopen(request, timeout=None):
+        raise urllib.error.HTTPError("http://x", 401, "Unauthorized", None, io.BytesIO(b""))
+
+    with patch("venjix.llm.urllib.request.urlopen", fake_urlopen):
+        with pytest.raises(urllib.error.HTTPError):
+            client.complete("p")
 
 
 def test_null_content_yields_empty_text():

@@ -19,6 +19,7 @@ be handled explicitly by the analysis, never silently compared.
 
 import argparse
 import json
+import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -72,7 +73,14 @@ def run_batch(
     failures = []
     completed = 0
 
+    launched = {"n": 0}
+
     def one(condition: Condition):
+        # Stagger worker starts: N conditions firing their first call in the
+        # same instant trips burst limiters that steady-state traffic never
+        # would. Costs <=30s of ramp against a multi-hour run.
+        launched["n"] += 1
+        time.sleep(min(launched["n"] * 0.5, 30.0))
         client = make_client(
             backend, condition.config.model, seed=condition.seed, base_url=base_url
         )
