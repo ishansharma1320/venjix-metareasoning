@@ -14,6 +14,7 @@ import json
 import os
 import re
 import ssl
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -228,6 +229,13 @@ class OpenAICompatibleClient(LLMClient):
                 last_error = exc
                 retry_after = exc.headers.get("Retry-After") if exc.headers else None
                 delay = float(retry_after) if retry_after else 2.0**attempt
+                # visible backpressure signal: rare lines = healthy,
+                # a stream of them = the endpoint is choking on concurrency
+                print(
+                    f"[backoff] HTTP {exc.code}, retry {attempt + 1}/{self.retries} "
+                    f"in {min(delay, 60.0):.0f}s",
+                    file=sys.stderr,
+                )
                 time.sleep(min(delay, 60.0))
             except (urllib.error.URLError, OSError) as exc:
                 last_error = exc
