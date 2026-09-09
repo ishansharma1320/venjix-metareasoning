@@ -279,6 +279,75 @@ before rung 4. Git history timestamps them. The writeup must report all three.
      purpose (bands: ≥0.25 RED = substrate fails, escalate deliberately).
    - Registered substrate, prices, and hashes remain exactly as Amendment 8 set them.
 
+10. **Amendment 9 (2026-09-09) — serving path: `Qwen/Qwen3-8B` self-served on vLLM
+    (RunPod Secure Cloud, one A100 80GB). Same registered model; zero conditions
+    carried forward.**
+    - **Why**: the Amendment 8 run (OpenRouter → Alibaba) was executing on a Raspberry
+      Pi when the Pi failed from thermal damage and its filesystem was corrupted; the
+      in-progress results are lost. Independently, Alibaba's upstream throttle held net
+      throughput at 4–6 calls/s (item 9), i.e. 8–9 days of exposure per attempt for a
+      set of ~4.3M calls (measured: ~7,200 calls per condition, ~136 input / ~13 output
+      tokens per call). A dedicated GPU removes the rate limit entirely.
+    - **Serving config** (the exact config the calibration gate is re-run against):
+      canonical Hugging Face `Qwen/Qwen3-8B` weights in bf16 (no quantization — the
+      Alibaba path's quantization was never disclosed), vLLM OpenAI-compatible server,
+      temperature 0, seed 0, thinking disabled via `chat_template_kwargs`
+      (`enable_thinking: false`), `max_tokens 256`, **`guided_regex` constrained
+      decoding restored on world-model calls exactly as Amendment 6a registered it**.
+      Policy (action-choice) calls stay unconstrained as always registered — considered
+      and declined on 2026-09-09: measured reply length is identical with and without
+      the constraint (8B unconstrained probe 13.3 output tokens/call vs 4B constrained
+      probe 14.3), so there is no waste to repair, and constraining them would alter the
+      logged parse-error fallback and the policy-heavy agents' dollar cost for no
+      correctness reason. Served by **vLLM 0.29.0 (cu129 build) on torch 2.13.0+cu129**
+      (host driver CUDA 12.8; the PyPI default cu130 build cannot initialize CUDA on
+      it), `--max-model-len 4096 --max-num-seqs 256 --gpu-memory-utilization 0.90`.
+    - **Client repair (correctness, not tuning), same day, before any experiment
+      run:** vLLM renamed the constrained-decoding request field. The client's
+      Amendment 6a-era `guided_regex` is *accepted but silently ignored* by vLLM 0.29
+      — verified live by sending a regex the model would never emit (`ZEBRA-[0-9]{3}`):
+      `guided_regex` → unconstrained reply; `structured_outputs: {"regex": …}` →
+      `ZEBRA-100`. `llm.py` now sends `structured_outputs`. Without this repair the
+      registered "constrained decoding on world-model calls" would have been a
+      no-op. Bias direction: neutral (shared substrate; both arbiters' world-model
+      calls are affected identically). **Supplementary data point**: the gate run
+      accidentally executed on this serving path *before* the repair (i.e.
+      unconstrained) measured 0.032, 95% CI [0.018, 0.048], GREEN, 27 parse errors —
+      `runs/calibration/20260909T205745-Qwen-Qwen3-8B` — statistically
+      indistinguishable from the Amendment 8 OpenRouter probe (0.030, 28 errors),
+      which is itself evidence the two serving paths host the same substrate.
+    - **Substrate uniformity**: Amendment 8's rule (one serving path for the whole run)
+      is kept. Every condition produced under the OpenRouter/Alibaba path — the three
+      complete and the partial runs on the laptop, and whatever the Pi held — is
+      **discarded**; the laptop copies are moved to `runs/exp-v1-openrouter-abandoned`
+      (kept for the record, never analyzed). All 600 conditions are run fresh on the
+      new path, resume-by-config-hash starting from an empty `runs/exp-v1`.
+    - **Prices**: the Amendment 8 table ($0.117 input / $0.455 output per MTok) is
+      **retained unchanged** as the registered synthetic accounting table (Design
+      decision 1 wording: "synthetic price table defined as config constants").
+      Self-hosting has no per-token price; the table is now a market-rate reference for
+      this model class, not the serving bill (for the record: Alibaba Model Studio's
+      list price for qwen3-8b on 2026-09-09 is $0.18 / $0.70; the actual marginal cost of
+      the set is GPU time, ≈ $1.59/h × 6–8 h). Keeping the table keeps every
+      `config_hash` unchanged. **Bias direction: neutral** — both agents in the
+      pre-registered criterion are priced under the same table with `cost_weight`
+      unchanged, and the shared substrate cannot favor either arbiter.
+    - **Calibration gate (of record)**: the pre-declared calm-state probe, re-run
+      against this exact serving config with constrained decoding enforced, **before
+      any experiment-set run**: `runs/calibration/20260909T205928-Qwen-Qwen3-8B`
+      (500 stratified cases, 64 workers) — misprediction rate **0.032, 95% CI
+      [0.018, 0.048] — GREEN** (bands <0.15 GREEN / <0.25 YELLOW / ≥0.25 RED), ~8×
+      headroom under `pe_threshold = 0.25`. Parse failures: 27, all `out_of_range`
+      (the unclipped boundary cell, neutralized by the bounds check + stay-in-place
+      fallback), **zero format_drift, zero truncation**. Identical point estimate and
+      CI to the Amendment 8 probe on the OpenRouter/Alibaba path.
+    - **Concurrency**: the batch executor runs at 96–128 workers against a localhost
+      endpoint on the same pod. Execution order and concurrency cannot affect results
+      (conditions are independent; see `batch.py`).
+    - Registered model id, agents, regimes, seeds, prices, and hashes remain exactly as
+      Amendment 8 set them. Registered on record before the first call to the new
+      serving path.
+
 ## Deadline
 
 Public repo + writeup posted by **August 14, 2026**, regardless of which baseline wins.

@@ -88,7 +88,8 @@ def test_thinking_disabled_in_request():
 def test_response_regex_becomes_guided_decoding():
     client = OpenAICompatibleClient("m", base_url="http://x", api_key="k")
     _, captured = call(client, "p", "up")
-    assert "guided_regex" not in captured["body"]  # plain calls unconstrained
+    assert "structured_outputs" not in captured["body"]  # plain calls unconstrained
+    assert "guided_regex" not in captured["body"]
 
     captured2 = {}
 
@@ -98,7 +99,12 @@ def test_response_regex_becomes_guided_decoding():
 
     with patch("venjix.llm.urllib.request.urlopen", fake_urlopen):
         client.complete("p", response_regex=r"NEXT: \(\d+, \d+\) REWARD: [01]")
-    assert captured2["body"]["guided_regex"] == r"NEXT: \(\d+, \d+\) REWARD: [01]"
+    # vLLM >= 0.10 field; the legacy `guided_regex` is accepted-but-ignored on
+    # 0.29 (verified live 2026-09-09), so it must NOT be what we rely on.
+    assert captured2["body"]["structured_outputs"] == {
+        "regex": r"NEXT: \(\d+, \d+\) REWARD: [01]"
+    }
+    assert "guided_regex" not in captured2["body"]
 
 
 def make_429(retry_after=None):

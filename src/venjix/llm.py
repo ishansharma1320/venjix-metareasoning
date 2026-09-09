@@ -204,7 +204,12 @@ class OpenAICompatibleClient(LLMClient):
             # returns empty content. Ignored by templates without the kwarg.
             request_body["chat_template_kwargs"] = {"enable_thinking": False}
             if response_regex is not None:
-                request_body["guided_regex"] = response_regex  # constrained decoding
+                # Constrained decoding. vLLM renamed the field: `guided_regex`
+                # (the Amendment 6a-era name) is ACCEPTED BUT SILENTLY IGNORED by
+                # vLLM 0.29 — verified live 2026-09-09 (a regex the model would
+                # never emit was not enforced via guided_regex, was enforced via
+                # structured_outputs). Only the new field actually masks logits.
+                request_body["structured_outputs"] = {"regex": response_regex}
         request_body.update(self.extra_body)
         body = json.dumps(request_body).encode()
         request = urllib.request.Request(
