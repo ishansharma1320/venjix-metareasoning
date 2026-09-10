@@ -4,7 +4,7 @@
 # Order: bootstrap -> vLLM -> constrained-decoding check -> world-model gate
 #        -> policy gate (Amendment 11). NO experiment-set condition is run here.
 set -uo pipefail
-export PATH="/root/.local/bin:/workspace/vllm-venv/bin:$PATH"
+export PATH="/root/.local/bin:/opt/vllm-venv/bin:$PATH"
 export HF_HOME=/workspace/hf
 cd /workspace
 phase() { echo "PHASE:$1:$2 $(date -u +%H:%M:%S)"; }
@@ -12,12 +12,12 @@ phase() { echo "PHASE:$1:$2 $(date -u +%H:%M:%S)"; }
 bash /workspace/scripts/bootstrap.sh > /workspace/logs/bootstrap.log 2>&1 \
   && grep -q BOOTSTRAP_OK /workspace/logs/bootstrap.log \
   && phase bootstrap OK || { phase bootstrap FAIL; tail -15 /workspace/logs/bootstrap.log; exit 1; }
-ln -sf /workspace/vllm-venv/bin/ninja /usr/local/bin/ninja
+ln -sf /opt/vllm-venv/bin/ninja /usr/local/bin/ninja
 
 bash /workspace/scripts/vllm_start.sh > /workspace/logs/vllm_start.log 2>&1 \
   && phase vllm OK || { phase vllm FAIL; grep -E "ERROR|Error" /workspace/logs/vllm.log | grep -v api_utils | tail -6; exit 1; }
 
-/workspace/vllm-venv/bin/python /workspace/scripts/regex_check.py > /workspace/logs/regex_check.log 2>&1
+/opt/vllm-venv/bin/python /workspace/scripts/regex_check.py > /workspace/logs/regex_check.log 2>&1
 grep -q "^structured_outputs -> ('200'" /workspace/logs/regex_check.log \
   && phase regex OK || { phase regex FAIL; cat /workspace/logs/regex_check.log; exit 1; }
 

@@ -5,10 +5,10 @@
 set -euo pipefail
 export HF_HOME=/workspace/hf
 export HF_HUB_OFFLINE=1   # weights are cached; never block on hub round-trips
-export PATH="/workspace/vllm-venv/bin:$PATH"   # torch.compile/inductor needs `ninja` on PATH
+export PATH="/opt/vllm-venv/bin:$PATH"   # torch.compile/inductor needs `ninja` on PATH
 if tmux has-session -t vllm 2>/dev/null; then echo "vllm session already running"; exit 0; fi
 tmux new-session -d -s vllm "cd /workspace && \
-  /workspace/vllm-venv/bin/vllm serve Qwen/Qwen3-8B \
+  /opt/vllm-venv/bin/vllm serve Qwen/Qwen3-8B \
     --host 127.0.0.1 --port 8000 \
     --dtype bfloat16 --seed 0 \
     --max-model-len 8192 --max-num-seqs 256 \
