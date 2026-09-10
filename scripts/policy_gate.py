@@ -42,9 +42,14 @@ def main() -> None:
     parser.add_argument("--base-url", default=None)
     parser.add_argument("--out", default="runs/policy-gate")
     parser.add_argument("--workers", type=int, default=20)
+    parser.add_argument("--budget", type=int, default=None,
+                        help="gate-only override of the spec's policy_thinking_budget "
+                             "(the registered fallback schedule); recorded in the report")
     args = parser.parse_args()
 
     spec = load_spec(args.set)
+    if args.budget is not None:
+        spec = dict(spec, policy_thinking_budget=args.budget)
     budget = spec.get("policy_thinking_budget")
     conds = [c for c in conditions(spec, agents=["reactive"])
              if c.regime == GATE_REGIME and c.seed < GATE_SEEDS]
