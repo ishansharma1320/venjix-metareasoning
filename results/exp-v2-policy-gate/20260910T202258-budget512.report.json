@@ -1,0 +1,18 @@
+{
+  "spec": "experiments/exp-v2.json",
+  "version": "exp-v2",
+  "policy_thinking_budget": 512,
+  "regime": "easy-7",
+  "seeds": 20,
+  "episodes_per_seed": 10,
+  "steps": 5546,
+  "move_fraction": 0.01153984853948792,
+  "success_rate": 0.075,
+  "forced_answer_rate": 1.0,
+  "mean_output_tokens_per_policy_call": 532.0906959971151,
+  "bands": {
+    "move_fraction_green": 0.5,
+    "success_rate_green": 0.15
+  },
+  "verdict": "RED"
+}

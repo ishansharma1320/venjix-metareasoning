@@ -481,6 +481,29 @@ before rung 4. Git history timestamps them. The writeup must report all three.
       change.
     - Analysis plan for exp-v2 is docs/ANALYSIS.md + Amendment 10 unchanged; the
       script takes `--runs runs/exp-v2 --spec experiments/exp-v2.json`.
+    - **Gate record (2026-09-10, same pod/stack as exp-v1's Amendment 9 config;
+      world-model gate re-run first: 0.032 [0.018, 0.048] GREEN, identical to
+      exp-v1).** Reports in `results/exp-v2-policy-gate/`. **Zero exp-v2 experiment-set
+      conditions were run.**
+
+      | budget | episodes | move fraction (bar ≥ 0.50) | success (bar ≥ 0.15) | forced-answer rate | output tokens / policy call | verdict |
+      |---|---|---|---|---|---|---|
+      | 512 | 200 | 0.012 | 0.075 | 1.000 | 532 | **RED** |
+      | 1024 (registered fallback) | 200 | 0.082 | 0.365 | 0.963 | 1047 | **RED** |
+
+      At 512 the policy is dead exactly as in exp-v1: every call hits the budget and
+      the forced answer is "probe". At 1024 it is *not dead*: it follows a revealed
+      probe offset to the goal in a few steps (the first ~20 episodes per condition
+      were 20/20 successes at ~5 steps each), but once a shift moves the goal out of
+      probe range it mostly probes again — success 0.365 (well above the 0.21 random
+      floor) with only 8% of steps moving. **The registered schedule is exhausted:
+      exp-v2 halts here.** Cost of the two gates ≈ $3.
+    - **Gate-design note, on record**: the move-fraction criterion was written to catch
+      "never moves" (exp-v1's 0.000); it also rejects a probe-heavy policy that
+      succeeds 36.5% of the time. Whether that policy is "alive enough" to run exp-v2
+      on is a judgment the gate as written does not make, and it is NOT re-made here.
+      Any continuation (a redesigned gate criterion, or a larger budget) is a new
+      amendment with its own justification and bias statement, decided by Ishan.
 
 ## Deadline
 
