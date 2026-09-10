@@ -7,6 +7,7 @@ dependencies = []
 
 [dependency-groups]
 dev = ["pytest>=8"]
+analysis = ["matplotlib>=3.8"]  # plots only; the package itself stays dependency-free
 
 [build-system]
 requires = ["hatchling"]
