@@ -25,6 +25,25 @@ it faithfully. This is the model's genuine (degenerate) policy, not a harness bu
 is a substrate limitation of the frozen agent design on an 8B model and is disclosed
 as such; the prompt is part of the registered agent and was not changed post hoc.
 
+**Follow-up (same day): is it the model or the registered config?** The same four
+prompts re-sent with Qwen3's thinking mode ON (the registered config has it OFF,
+Amendments 6a/8/9, for cost and output format):
+
+| observation | thinking OFF (registered) | thinking ON | output tokens (ON) |
+|---|---|---|---|
+| start, no probe yet | `probe` | `probe` | 1,993 |
+| after probe, goal out of range | `probe` | `right` | 4,497 |
+| after probe, goal offset (2, 1) | `probe` | `down` (correct direction) | 2,552 |
+| mid-grid, no info | `probe` | `probe` | 1,093 |
+
+So the model *can* act on the observation; the no-thinking config is what reduces its
+policy to "probe". The trade-off that made thinking-off the registered choice is real:
+~1,000–4,500 output tokens per policy call versus 1, i.e. ~200× the decode cost —
+on exp-v1's call volume, infeasible on this budget. This is a substrate-config
+limitation of exp-v1, disclosed; it was not changed post hoc. The natural follow-up
+(pre-registered as its own experiment, never a re-run of exp-v1) is a substrate whose
+non-thinking policy moves — a larger model, or a policy gate declared before the run.
+
 **Consequences for the roster (all measured, none adjusted):**
 - `act` is a dead mode: it never moves. Reactive-only success = 0.000.
 - The heuristic is act-dominant by construction (`gather if ewma > 0.25 else retrieve
