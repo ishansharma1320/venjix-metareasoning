@@ -37,6 +37,16 @@ _FIELD_RES = {
 _MOVES = {"up": (-1, 0), "down": (1, 0), "left": (0, -1), "right": (0, 1)}
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 
+# Qwen3 "thinking budget" recipe (Amendment 11): when the think block hits the
+# budget, close it with this line and let the model answer from what it has.
+THINK_CLOSE = (
+    "\n\nConsidering the limited time by the user, I have to give the solution "
+    "based on the thinking directly now.\n</think>\n\n"
+)
+# Answer allowance on top of the think budget in phase 1 (an action word is 1-3
+# tokens; this only matters when thinking closes right at the budget edge).
+_ANSWER_ALLOWANCE = 16
+
 
 def _strip_thinking(text: str) -> str:
     """Remove <think> traces — including an UNCLOSED trace from a response
@@ -170,12 +180,19 @@ class OpenAICompatibleClient(LLMClient):
         extra_body: dict | None = None,
         vllm_dialect: bool = True,
         retries: int = 6,
+        thinking_budget: int | None = None,
     ):
         """vllm_dialect=True sends vLLM-only fields (chat_template_kwargs,
-        guided_regex). Set False for aggregators like OpenRouter, which use
-        their own reasoning-control / provider-pinning fields via extra_body
-        and support no constrained decoding (the parser fallback covers that
-        — measured benign in the v1 calibration probe)."""
+        structured_outputs, continue_final_message). Set False for aggregators
+        like OpenRouter, which use their own reasoning-control / provider-pinning
+        fields via extra_body and support no constrained decoding (the parser
+        fallback covers that — measured benign in the v1 calibration probe).
+
+        thinking_budget (Amendment 11, exp-v2): enable Qwen3 thinking on calls
+        WITHOUT a response regex (policy calls), capped at this many tokens via
+        the two-phase budget recipe (see _complete_thinking). Regex-constrained
+        world-model calls never think: the grammar would mask the think block
+        and that path is separately calibrated. vLLM dialect only."""
         super().__init__()
         base = (
             base_url
@@ -190,8 +207,16 @@ class OpenAICompatibleClient(LLMClient):
         self.vllm_dialect = vllm_dialect
         self.retries = retries
         self._api_key = api_key or os.environ.get("OPENAI_API_KEY", "EMPTY")
+        if thinking_budget is not None and not vllm_dialect:
+            raise ValueError("thinking_budget requires the vLLM dialect (continue_final_message)")
+        self.thinking_budget = thinking_budget
+        # Budget-hit count: phase-2 "forced" answers. Snapshotted per step by the
+        # runner (like the token counters) into the `forced_answer` step field.
+        self.total_forced_answers = 0
 
     def _complete(self, prompt: str, response_regex: str | None = None) -> LLMResponse:
+        if self.thinking_budget is not None and response_regex is None:
+            return self._complete_thinking(prompt)
         request_body = {
             "model": self.model,
             "max_tokens": self.max_tokens,
@@ -211,6 +236,72 @@ class OpenAICompatibleClient(LLMClient):
                 # structured_outputs). Only the new field actually masks logits.
                 request_body["structured_outputs"] = {"regex": response_regex}
         request_body.update(self.extra_body)
+        payload = self._post(request_body)
+        text = _extract_text(payload["choices"][0]["message"])
+        usage = payload["usage"]
+        return LLMResponse(
+            text=text,
+            input_tokens=usage["prompt_tokens"],
+            output_tokens=usage["completion_tokens"],
+        )
+
+    def _complete_thinking(self, prompt: str) -> LLMResponse:
+        """Qwen3 thinking-budget recipe, two phases:
+
+        1. Generate with thinking ON and max_tokens = budget (+ a tiny answer
+           allowance). If the think block closed and an answer followed, done.
+        2. Otherwise the budget was hit: resend the conversation with the
+           partial assistant text + THINK_CLOSE as the (unfinished) final
+           assistant message and `continue_final_message`, so the model emits
+           its answer from the reasoning it has. Counted as a forced answer.
+
+        Usage is summed over both phases: thinking tokens are output tokens and
+        are priced as such under the registered table."""
+        messages = [{"role": "user", "content": prompt}]
+        phase1 = {
+            "model": self.model,
+            "max_tokens": self.thinking_budget + _ANSWER_ALLOWANCE,
+            "temperature": 0,
+            "messages": messages,
+            "chat_template_kwargs": {"enable_thinking": True},
+        }
+        phase1.update(self.extra_body)
+        p1 = self._post(phase1)
+        raw = p1["choices"][0]["message"].get("content") or ""
+        in_tok = p1["usage"]["prompt_tokens"]
+        out_tok = p1["usage"]["completion_tokens"]
+
+        if "<think>" not in raw:
+            # model answered without a think block — nothing to close
+            return LLMResponse(_strip_thinking(raw), in_tok, out_tok)
+        if "</think>" in raw:
+            answer = raw.split("</think>", 1)[1].strip()
+            if answer:
+                return LLMResponse(answer, in_tok, out_tok)
+            prefix = raw  # thinking closed exactly at the edge; continue the answer
+        else:
+            prefix = raw.rstrip() + THINK_CLOSE
+            self.total_forced_answers += 1
+
+        phase2 = {
+            "model": self.model,
+            "max_tokens": self.max_tokens,
+            "temperature": 0,
+            "messages": messages + [{"role": "assistant", "content": prefix}],
+            "chat_template_kwargs": {"enable_thinking": True},
+            "continue_final_message": True,
+            "add_generation_prompt": False,
+        }
+        phase2.update(self.extra_body)
+        p2 = self._post(phase2)
+        answer = _strip_thinking(p2["choices"][0]["message"].get("content") or "")
+        return LLMResponse(
+            answer,
+            in_tok + p2["usage"]["prompt_tokens"],
+            out_tok + p2["usage"]["completion_tokens"],
+        )
+
+    def _post(self, request_body: dict) -> dict:
         body = json.dumps(request_body).encode()
         request = urllib.request.Request(
             self.url,
@@ -264,13 +355,7 @@ class OpenAICompatibleClient(LLMClient):
                 f"openai-compatible call failed after {self.retries} attempts: "
                 f"{last_error!r}"
             )
-        text = _extract_text(payload["choices"][0]["message"])
-        usage = payload["usage"]
-        return LLMResponse(
-            text=text,
-            input_tokens=usage["prompt_tokens"],
-            output_tokens=usage["completion_tokens"],
-        )
+        return payload
 
 
 class VastServerlessClient(LLMClient):
@@ -373,14 +458,20 @@ class VastServerlessClient(LLMClient):
 
 
 def make_client(
-    backend: str, model: str, seed: int = 0, base_url: str | None = None
+    backend: str,
+    model: str,
+    seed: int = 0,
+    base_url: str | None = None,
+    thinking_budget: int | None = None,
 ) -> LLMClient:
     if backend == "mock":
         return MockModel(seed=seed)
+    if thinking_budget is not None and backend != "vllm":
+        raise ValueError("policy_thinking_budget is only supported on the vllm backend")
     if backend == "anthropic":
         return AnthropicModel(model)
     if backend == "vllm":
-        return OpenAICompatibleClient(model, base_url=base_url)
+        return OpenAICompatibleClient(model, base_url=base_url, thinking_budget=thinking_budget)
     if backend == "openrouter":
         api_key = os.environ.get("OPENROUTER_API_KEY")
         if not api_key:

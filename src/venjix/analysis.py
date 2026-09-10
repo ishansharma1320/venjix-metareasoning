@@ -34,7 +34,8 @@ RATIO_AGENTS = ("bandit", "heuristic")
 MODE_CHOOSING_AGENTS = ("heuristic", "bandit", "mixture")
 MODES = ("act", "retrieve", "simulate", "gather_evidence")
 
-_STEP_KEYS = ("episode", "global_step", "mode", "parse_error", "pos", "cost_usd")
+_STEP_KEYS = ("episode", "global_step", "mode", "parse_error", "pos", "cost_usd",
+              "forced_answer")  # forced_answer: absent pre-exp-v2 -> None
 
 
 # --------------------------------------------------------------------------- #
@@ -108,7 +109,7 @@ def load_runs(out_root: str | Path) -> list[Run]:
                     record = json.loads(line)
                     kind = record.get("type")
                     if kind == "step":
-                        run.steps.append({k: record[k] for k in _STEP_KEYS})
+                        run.steps.append({k: record.get(k) for k in _STEP_KEYS})
                     elif kind == "shift":
                         run.shifts.append(record)
                     elif kind == "episode":
@@ -170,6 +171,16 @@ def run_assertions(runs: list[Run], out_root: str | Path, spec: dict) -> dict:
         if rate > PARSE_ERROR_HARD_STOP:
             reasons.append(f"parse-error rate {rate:.3f} for {agent} exceeds {PARSE_ERROR_HARD_STOP}")
 
+    # Amendment 11 (exp-v2): forced-answer rate among act-mode steps, per agent.
+    # Reported, not a hard stop (the policy gate governs competence).
+    forced = defaultdict(lambda: [0, 0])
+    for r in complete:
+        for s in r.steps:
+            if s["mode"] == "act" and s.get("forced_answer") is not None:
+                forced[r.agent][0] += s["forced_answer"]
+                forced[r.agent][1] += 1
+    forced_rate = {a: (n / t if t else 0.0) for a, (n, t) in sorted(forced.items())}
+
     # 4. goal-landed-on-agent-cell events
     landed = 0
     total_shifts = 0
@@ -200,6 +211,7 @@ def run_assertions(runs: list[Run], out_root: str | Path, spec: dict) -> dict:
         },
         "unequal_exposure_groups": unequal_groups,
         "parse_error_rate": parse_rate,
+        "forced_answer_rate_act_steps": forced_rate,
         "goal_landed_on_agent_cell": {
             "events": landed, "shifts": total_shifts,
             "rate": (landed / total_shifts if total_shifts else 0.0),
@@ -538,6 +550,9 @@ def format_summary(report: dict) -> str:
     lines.append(f"pairing: prefix divergences {len(a['pairing']['prefix_divergences'])}, "
                  f"unequal-exposure groups {len(a['unequal_exposure_groups'])}")
     lines.append("parse-error rate: " + ", ".join(f"{k} {v:.4f}" for k, v in a["parse_error_rate"].items()))
+    if a.get("forced_answer_rate_act_steps"):
+        lines.append("forced-answer rate (act steps): " + ", ".join(
+            f"{k} {v:.3f}" for k, v in a["forced_answer_rate_act_steps"].items()))
     g = a["goal_landed_on_agent_cell"]
     lines.append(f"goal landed on agent cell: {g['events']}/{g['shifts']} shifts ({g['rate']:.2%})")
     if a["hard_stop"]:

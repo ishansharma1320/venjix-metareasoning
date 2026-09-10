@@ -18,6 +18,7 @@ STEP_FIELDS = {
     "parse_error", "pos", "reward", "done", "success", "probe_result",
     "llm_calls", "input_tokens", "output_tokens", "cost_usd", "wall_time_ms",
     "prediction_error", "signal_ewma",
+    "forced_answer",  # Amendment 11 schema addition (nullable)
 }
 
 VOLATILE = ("wall_time_ms",)

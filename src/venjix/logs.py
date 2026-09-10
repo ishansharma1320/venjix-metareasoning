@@ -65,6 +65,7 @@ class EpisodeLogger:
         wall_time_ms: float,
         prediction_error: int | None,
         signal_ewma: float | None,
+        forced_answer: int | None = None,
     ) -> None:
         self._write(
             {
@@ -89,6 +90,10 @@ class EpisodeLogger:
                 # step's update; null for agents that carry no signal.
                 "prediction_error": prediction_error,
                 "signal_ewma": signal_ewma,
+                # SCHEMA ADDITION (Amendment 11, additive + nullable): number of
+                # policy calls this step whose thinking hit the budget and were
+                # forced to answer; null for clients without a thinking budget.
+                "forced_answer": forced_answer,
             }
         )
 

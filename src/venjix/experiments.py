@@ -68,6 +68,8 @@ def conditions(spec: dict, agents: list[str] | None = None) -> list[Condition]:
                     pe_threshold=params["pe_threshold"],
                     ucb_alpha=params["ucb_alpha"],
                     cost_weight=params["cost_weight"],
+                    # exp-v2 (Amendment 11); absent in exp-v1 -> None -> hashes unchanged
+                    policy_thinking_budget=spec.get("policy_thinking_budget"),
                 )
                 result.append(
                     Condition(regime=regime["name"], agent=agent, seed=seed, config=config)
@@ -117,7 +119,8 @@ def main() -> None:
 
     backend = args.backend or ("mock" if args.mock else "vllm")
     client = make_client(
-        backend, condition.config.model, seed=condition.seed, base_url=args.base_url
+        backend, condition.config.model, seed=condition.seed, base_url=args.base_url,
+        thinking_budget=condition.config.policy_thinking_budget,
     )
     summary = run(condition.config, client, args.out)
     print(

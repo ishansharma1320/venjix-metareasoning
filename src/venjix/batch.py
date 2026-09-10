@@ -82,7 +82,8 @@ def run_batch(
         launched["n"] += 1
         time.sleep(min(launched["n"] * 0.5, 30.0))
         client = make_client(
-            backend, condition.config.model, seed=condition.seed, base_url=base_url
+            backend, condition.config.model, seed=condition.seed, base_url=base_url,
+            thinking_budget=condition.config.policy_thinking_budget,
         )
         return condition, run(condition.config, client, out_root)
 

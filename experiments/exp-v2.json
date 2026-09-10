@@ -1,0 +1,160 @@
+{
+  "version": "exp-v2",
+  "frozen_at": "2026-09-10",
+  "description": "Pre-registered replication of exp-v1 on the SAME substrate with ONE change: Qwen3 thinking enabled on policy (act-mode) calls only, capped by a thinking budget (Amendment 11). Regimes, seeds, episodes, agents, agent_params, prices, prompts: byte-identical to exp-v1. World-model calls stay thinking-off and regex-constrained exactly as in exp-v1.",
+  "n_seeds": 20,
+  "n_episodes": 40,
+  "model": "Qwen/Qwen3-8B",
+  "prices": {
+    "input_per_mtok_usd": 0.117,
+    "output_per_mtok_usd": 0.455
+  },
+  "alternate_prices": {
+    "input_per_mtok_usd": 1.0,
+    "output_per_mtok_usd": 5.0,
+    "note": "claude-haiku-4-5 table; Design decision 1 sensitivity check for the writeup"
+  },
+  "agents": [
+    "reactive",
+    "retrieve",
+    "simulate",
+    "mixture",
+    "heuristic",
+    "bandit"
+  ],
+  "agent_params": {
+    "sim_depth": 3,
+    "ewma_alpha": 0.3,
+    "pe_threshold": 0.25,
+    "mixture_weights": [
+      0.25,
+      0.25,
+      0.25,
+      0.25
+    ],
+    "ucb_alpha": 1.0,
+    "cost_weight": 100.0
+  },
+  "amendment_note": "2026-09-10 (Amendment 11, zero exp-v2 runs executed): exp-v1's registered verdict was MATCHES with the act mode dead on this substrate (non-thinking Qwen3-8B answers 'probe' on every policy call; verified verbatim, results/exp-v1-analysis/policy-reply-diagnostic.md). Thinking ON makes the same model move sensibly but unbounded reasoning costs 1k-4.5k output tokens per policy call. exp-v2 tests bounded reasoning: budget 512 first; the SOLE registered fallback is 1024 if the pre-declared policy gate is RED at 512. Policy gate (before the 600-run): reactive-only on easy-7, 20 seeds x 10 episodes; GREEN iff move fraction >= 0.50 AND success rate >= 0.15 (lower 95% bound of the mock random policy's 0.21 on easy-7 over 200 episodes; the gate detects a dead policy, not superiority); else RED. Price table unchanged (thinking tokens are output tokens under the registered table, so act becomes the expensive mode - that is the experiment). forced_answer added to the step schema (additive, nullable). exp-v1 hashes are unchanged; exp-v2 conditions hash differently and never collide with exp-v1 runs.",
+  "regimes": [
+    {
+      "name": "easy-7",
+      "note": "Small grid, sharp probes, two mild shifts. The regime the smoke runs lived in; kept as the floor of the difficulty spread.",
+      "env": {
+        "size": 7,
+        "probe_radius": 3
+      },
+      "shifts": [
+        [
+          120,
+          3
+        ],
+        [
+          280,
+          5
+        ]
+      ]
+    },
+    {
+      "name": "mid-11",
+      "note": "Middle of the road: bigger search space, moderate relocations.",
+      "env": {
+        "size": 11,
+        "probe_radius": 3
+      },
+      "shifts": [
+        [
+          150,
+          4
+        ],
+        [
+          300,
+          8
+        ],
+        [
+          450,
+          6
+        ]
+      ]
+    },
+    {
+      "name": "hard-15-far",
+      "note": "Large grid, large relocations: stale beliefs are maximally misleading and re-exploration is expensive.",
+      "env": {
+        "size": 15,
+        "probe_radius": 3
+      },
+      "shifts": [
+        [
+          180,
+          6
+        ],
+        [
+          360,
+          12
+        ],
+        [
+          540,
+          9
+        ]
+      ]
+    },
+    {
+      "name": "hard-11-blunt-probe",
+      "note": "Evidence is costly: probe radius 1 means gather_evidence needs many steps to pay off, stressing the spend-on-evidence tradeoff.",
+      "env": {
+        "size": 11,
+        "probe_radius": 1
+      },
+      "shifts": [
+        [
+          150,
+          4
+        ],
+        [
+          300,
+          8
+        ],
+        [
+          450,
+          6
+        ]
+      ]
+    },
+    {
+      "name": "turbulent-11",
+      "note": "Frequent alternating shifts: recalibration never gets to settle, stressing recovery speed rather than one-off adaptation.",
+      "env": {
+        "size": 11,
+        "probe_radius": 3
+      },
+      "shifts": [
+        [
+          80,
+          3
+        ],
+        [
+          160,
+          8
+        ],
+        [
+          240,
+          3
+        ],
+        [
+          320,
+          8
+        ],
+        [
+          400,
+          3
+        ],
+        [
+          480,
+          8
+        ]
+      ]
+    }
+  ],
+  "policy_thinking_budget": 512
+}

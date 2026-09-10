@@ -96,8 +96,14 @@ class RunConfig:
     # cost_weight * step_cost_usd) tying the bandit to success-per-dollar.
     ucb_alpha: float = 1.0
     cost_weight: float = 100.0
+    # Amendment 11 (exp-v2): Qwen3 thinking budget for POLICY calls only (calls
+    # without a response regex). None = thinking off (exp-v1). Omitted from
+    # to_dict()/config_hash() when None so every exp-v1 hash is unchanged.
+    policy_thinking_budget: int | None = None
 
     def __post_init__(self) -> None:
+        if self.policy_thinking_budget is not None and self.policy_thinking_budget < 1:
+            raise ValueError("policy_thinking_budget must be >= 1 or None")
         if self.agent not in AGENT_TYPES:
             raise ValueError(f"agent must be one of {AGENT_TYPES}, got {self.agent!r}")
         if self.sim_depth < 1:
@@ -120,7 +126,10 @@ class RunConfig:
             raise ValueError("mixture_weights only apply to agent='mixture'")
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        d = asdict(self)
+        if d["policy_thinking_budget"] is None:
+            del d["policy_thinking_budget"]  # hash-compatible with pre-exp-v2 configs
+        return d
 
     def config_hash(self) -> str:
         canonical = json.dumps(self.to_dict(), sort_keys=True)

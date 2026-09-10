@@ -432,6 +432,55 @@ before rung 4. Git history timestamps them. The writeup must report all three.
       every dollar-spending fixed strategy, but the cheapest strategy needs no
       arbitration at all. This is the "how little machinery" framing the registration
       committed to publishing.
+    - **Follow-up diagnostic (same day)**: the same model with thinking ON moves
+      sensibly on the same prompts (right when the probe finds nothing, down toward a
+      revealed (2, 1) offset) at 1,000–4,500 output tokens per call. The registered
+      thinking-off config, not the model, is what killed the act policy. exp-v1 stands
+      as recorded; this motivates exp-v2 below.
+
+13. **Amendment 11 (2026-09-10) — exp-v2 registered: same substrate, bounded thinking
+    on policy calls. Zero exp-v2 runs executed at this commit.** Spec:
+    `experiments/exp-v2.json` = exp-v1 byte-for-byte (regimes, seeds, episodes, agents,
+    agent params, prices, prompts) plus **one field, `policy_thinking_budget: 512`**.
+    exp-v2 is a separate pre-registered experiment published alongside exp-v1, never a
+    re-run or replacement of it.
+    - **The change**: Qwen3 thinking enabled on policy (act-mode) calls only, capped by
+      a token budget using Qwen's two-phase recipe (generate with `max_tokens =
+      budget + 16`; if the think block did not close, resend with the partial
+      reasoning + a fixed closing line and `continue_final_message` so the model
+      answers from what it has — a "forced answer"). World-model calls stay exactly as
+      exp-v1: thinking off, regex-constrained (a grammar would mask the think block,
+      and that path is separately calibrated). `RunConfig.policy_thinking_budget`
+      (None = exp-v1) is omitted from the hash when None: **every exp-v1 hash is
+      unchanged (test-pinned)**; exp-v2 hashes differ and cannot collide.
+    - **Budget schedule, declared now**: **512 first**. The **sole registered fallback
+      is 1024**, taken only if the policy gate is RED at 512. No other budget will be
+      tried; unbounded thinking is not a condition (the point is whether bounded
+      reasoning buys competence at a cost the arbiter can trade off).
+    - **Policy gate (the check exp-v1 lacked), before the 600-run**: reactive-only on
+      easy-7, 20 seeds × 10 episodes, exact exp-v2 serving config
+      (`scripts/policy_gate.py`). **GREEN iff move fraction ≥ 0.50 AND success rate
+      ≥ 0.15**; else RED. The gate detects a *dead* policy (exp-v1: 0.0 moves, 0.0
+      success), not superiority: the mock random policy scores 0.21 on easy-7
+      (`runs/exp-v1-mock`), with binomial sd ≈ 0.029 over the gate's 200 episodes, so
+      0.15 is its lower 95% bound — GREEN means "moves, and not significantly worse
+      than random". (Declared after the mock dress rehearsal of the script scored
+      0.205, which showed a bar at the random point estimate fails a random policy on
+      noise; declared before any exp-v2 call to the model.) The world-model
+      calibration gate is re-run too if the serving stack changes at all.
+    - **Prices unchanged**: thinking tokens are output tokens under the registered
+      table, so an act step costs ~$0.0002–0.0005 instead of ~$0.00002 — act becomes an
+      expensive mode. That is the experiment, not a confound; `cost_weight = 100` now
+      bites on act and the writeup says so.
+    - **Schema addition, flagged**: step records gain `forced_answer` (int, nullable;
+      additive). Analysis reports the forced-answer rate among act steps per agent
+      (reported, not a hard stop — the gate governs competence).
+    - **Bias direction**: neutral in mechanism (every agent's act mode gets the same
+      policy). In practice it strengthens the *heuristic* most, since the heuristic
+      is act-dominant — i.e. it makes the killer baseline stronger, the honest kind of
+      change.
+    - Analysis plan for exp-v2 is docs/ANALYSIS.md + Amendment 10 unchanged; the
+      script takes `--runs runs/exp-v2 --spec experiments/exp-v2.json`.
 
 ## Deadline
 

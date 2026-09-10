@@ -86,6 +86,7 @@ def run(config: RunConfig, client: LLMClient, out_root: str | Path) -> RunSummar
                 t0 = now_ms()
                 calls0 = client.total_calls
                 in0, out0 = client.total_input_tokens, client.total_output_tokens
+                forced0 = getattr(client, "total_forced_answers", None)
                 decision = agent.choose(obs)
                 prev_obs = obs
                 obs = env.step(decision.action)
@@ -115,6 +116,10 @@ def run(config: RunConfig, client: LLMClient, out_root: str | Path) -> RunSummar
                     wall_time_ms=wall_ms,
                     prediction_error=getattr(agent, "last_prediction_error", None),
                     signal_ewma=getattr(agent, "signal_value", None),
+                    forced_answer=(
+                        None if forced0 is None
+                        else client.total_forced_answers - forced0
+                    ),
                 )
                 ep_calls += client.total_calls - calls0
                 ep_in += step_in
