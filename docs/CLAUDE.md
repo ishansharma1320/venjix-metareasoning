@@ -347,6 +347,52 @@ before rung 4. Git history timestamps them. The writeup must report all three.
     - Registered model id, agents, regimes, seeds, prices, and hashes remain exactly as
       Amendment 8 set them. Registered on record before the first call to the new
       serving path.
+    - **Run record (2026-09-10)**: 600/600 conditions complete, 0 failures, ~2.5M
+      calls in 3.3 h at ~211 calls/s; pairing verification: 0 prefix divergences, 35
+      (regime, seed) groups with unequal shift counts (the pre-declared
+      finished-before-late-shift case; handled per docs/ANALYSIS.md, not adjusted).
+
+11. **Amendment 10 (2026-09-10) — analysis computation details, declared BEFORE any
+    analysis code is run on the data.** docs/ANALYSIS.md registers *what* is computed;
+    two mechanical choices it leaves open are fixed here so neither can be tuned after
+    a first look. No result has been computed at the time of this commit.
+    - **Per-condition metric**: success-per-dollar (SPD) = successes / total
+      `cost_usd` over the condition's 40 episodes (registered price table). Conditions
+      with zero spend (retrieve-only) are excluded from any ratio (Amendment 6b) and
+      appear only on the Pareto plot.
+    - **Headline aggregation (Design decision 8)**: bandit vs heuristic are **paired by
+      (regime, seed)** — 100 pairs. The statistic is the relative difference of mean
+      SPD, (mean_bandit − mean_heuristic) / mean_heuristic, over all 100 pairs pooled
+      across the five regimes. Bootstrap: **stratified by regime, resampling the 20
+      seeds within each regime with replacement, pairs kept intact**, 10,000 resamples,
+      RNG seed 0, percentile 95% CIs on each agent's mean SPD and on the relative
+      difference. **WIN iff** relative difference ≥ 0.10 **and** the bandit's mean-SPD
+      CI lower bound exceeds the heuristic's CI upper bound (the registered
+      "non-overlapping" reading); else MATCHES. Per-regime numbers are reported as a
+      table but do not enter the verdict. The §2 equal-exposure recomputation uses the
+      identical procedure on the subset of pairs with equal shift counts.
+    - **Recovery time (Design decision 7)**: per (regime, seed, shift k), for each agent
+      that experienced shift k: episode-level SPD EWMA with **alpha = 0.3 (the signal's
+      registered alpha; no new constant)**, baseline = EWMA value at the last episode
+      that ended before the shift's global step; recovered at the first later episode
+      whose EWMA ≥ 0.9 × baseline; recovery time = global steps from the shift to the
+      end of that episode. Runs that never recover before the condition ends are
+      **censored at the condition's final step and counted separately** (reported, not
+      dropped). Comparisons at shift k are among experiencers only (ANALYSIS.md §3).
+    - **Signature plot**: per-mode choice frequency by step offset from shift k, window
+      −60…+180 global steps, averaged over (group, k) among experiencers, for every
+      agent that chooses modes (heuristic, bandit, mixture; single-mode agents are flat
+      by construction).
+    - **Parse-error rate (assertion 3)**: fraction of step records with
+      `parse_error = true`, per agent. **Goal-landed-on-cell (assertion 4)**: shift
+      records whose `new_goal` equals the agent's position at that global step.
+    - **Bias direction**: these choices are symmetric between bandit and heuristic
+      (same pairing, same estimator, same alpha inherited from the shared signal). The
+      stratified paired bootstrap is the *tighter* of the reasonable choices, which
+      makes non-overlap easier to reach — noted so the writeup can say so; the
+      alternative (pooled unpaired resampling) is reported as a sensitivity line.
+    - The analysis script implements exactly this and docs/ANALYSIS.md, runs the
+      assertion set first, and refuses to print a verdict if any hard stop fails.
 
 ## Deadline
 
