@@ -394,6 +394,45 @@ before rung 4. Git history timestamps them. The writeup must report all three.
     - The analysis script implements exactly this and docs/ANALYSIS.md, runs the
       assertion set first, and refuses to print a verdict if any hard stop fails.
 
+12. **Analysis record (2026-09-10) — registered verdict: `MATCHES`.** Outputs in
+    `results/exp-v1-analysis/` (report.json, summary.txt, signature.png, pareto.png).
+    Assertion set: 600/600 complete, 0 prefix divergences, 35 unequal-exposure groups,
+    parse-error rate 0.000 for every agent, goal-landed-on-cell 11/1906 (0.58%).
+    - **Headline (registered estimator)**: bandit mean SPD 1061 [875, 1283] vs
+      heuristic 1792 [986, 2813]; relative difference −0.41 [−0.57, −0.05]. Margin not
+      met, CIs overlap → MATCHES. Equal-exposure robustness (90 pairs): MATCHES,
+      −0.50 [−0.62, −0.23]. Per-regime: bandit ahead in 3/5 regimes (hard-11-blunt-probe
+      +∞ since heuristic = 0, hard-15-far +0.60, mid-11 +0.62), behind in easy-7 (−0.64)
+      and turbulent-11 (−0.13).
+    - **What drives the estimator**: the registered SPD is the mean of per-condition
+      ratios. Heuristic conditions in easy-7 that succeed at near-zero spend produce
+      ratios up to 42,966 successes/$ and dominate the mean. **Post-hoc sensitivity,
+      labeled as such and NOT the verdict**: pooled ratio-of-means (total successes /
+      total dollars) is bandit 493/$ vs heuristic 136/$ (3.6×). The Pareto data
+      (registered §4 / Amendment 6b) shows the bandit at 0.684 success
+      [0.620, 0.745] vs heuristic 0.204 [0.133, 0.279] at the same cost per episode
+      ($0.0014 vs $0.0015). Both views go in the writeup; the verdict line is the
+      registered one.
+    - **Two anomalies investigated before reporting ("look for the bug")**:
+      reactive-only success 0.000 and heuristic `gather_evidence` share ≈ 0.000. Root
+      cause is the substrate, verified verbatim (`results/exp-v1-analysis/policy-reply-
+      diagnostic.md`): the `act` policy call returns the single word `probe` on every
+      step, even when the probe result already reveals the goal. Not a parser or
+      harness defect; the frozen agent prompt was not changed. The heuristic therefore
+      almost never holds a belief its world model can be wrong about (2 mispredictions
+      in 59,814 sampled steps) and its signal never fires; it succeeds only when the
+      start cell is within probe radius of the goal.
+    - **Mechanism**: the bandit's signature at a shift is mild (gather_evidence share
+      0.21 → 0.25 in the 30 steps after a shift; retrieve dips 0.43 → 0.34), not the
+      predicted sharp spike; the heuristic is flat (98% act). Recovery: bandit median
+      20 steps with 63/297 censored; heuristic median 8 steps but 303/310 of its
+      baselines are zero (it had no pre-shift successes to recover to).
+    - **The study result**: retrieve-only (random walk + episodic memory, $0) reaches
+      0.627 success, within the bandit's CI at zero LLM spend. Arbitration helps over
+      every dollar-spending fixed strategy, but the cheapest strategy needs no
+      arbitration at all. This is the "how little machinery" framing the registration
+      committed to publishing.
+
 ## Deadline
 
 Public repo + writeup posted by **August 14, 2026**, regardless of which baseline wins.

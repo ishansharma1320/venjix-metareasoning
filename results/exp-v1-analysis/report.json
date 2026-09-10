@@ -1,0 +1,2235 @@
+{
+  "assertions": {
+    "complete_runs": 600,
+    "duplicate_hashes": [],
+    "goal_landed_on_agent_cell": {
+      "events": 11,
+      "rate": 0.005771248688352571,
+      "shifts": 1906
+    },
+    "hard_stop": false,
+    "incomplete_dirs": [],
+    "missing_conditions": [],
+    "pairing": {
+      "count_mismatch_groups": 35,
+      "ignored_incomplete": 0,
+      "prefix_divergences": []
+    },
+    "parse_error_rate": {
+      "bandit": 0.0,
+      "heuristic": 0.0,
+      "mixture": 0.0,
+      "reactive": 0.0,
+      "retrieve": 0.0,
+      "simulate": 0.0
+    },
+    "reasons": [],
+    "registered_conditions": 600,
+    "shift_counts": {
+      "easy-7": {
+        "0": {
+          "bandit": 2,
+          "heuristic": 2,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 2,
+          "simulate": 2
+        },
+        "1": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 2
+        },
+        "10": {
+          "bandit": 2,
+          "heuristic": 2,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 2,
+          "simulate": 2
+        },
+        "11": {
+          "bandit": 1,
+          "heuristic": 2,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 2,
+          "simulate": 2
+        },
+        "12": {
+          "bandit": 1,
+          "heuristic": 2,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 2,
+          "simulate": 2
+        },
+        "13": {
+          "bandit": 2,
+          "heuristic": 2,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 2,
+          "simulate": 2
+        },
+        "14": {
+          "bandit": 0,
+          "heuristic": 0,
+          "mixture": 0,
+          "reactive": 2,
+          "retrieve": 0,
+          "simulate": 0
+        },
+        "15": {
+          "bandit": 0,
+          "heuristic": 0,
+          "mixture": 1,
+          "reactive": 2,
+          "retrieve": 0,
+          "simulate": 0
+        },
+        "16": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 1
+        },
+        "17": {
+          "bandit": 2,
+          "heuristic": 2,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 2,
+          "simulate": 2
+        },
+        "18": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 2
+        },
+        "19": {
+          "bandit": 2,
+          "heuristic": 2,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 2,
+          "simulate": 2
+        },
+        "2": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 2
+        },
+        "3": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 1,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 1
+        },
+        "4": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 1,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 1
+        },
+        "5": {
+          "bandit": 2,
+          "heuristic": 2,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 2,
+          "simulate": 2
+        },
+        "6": {
+          "bandit": 2,
+          "heuristic": 2,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 2
+        },
+        "7": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 2
+        },
+        "8": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 1,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 1
+        },
+        "9": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 2,
+          "simulate": 2
+        }
+      },
+      "hard-11-blunt-probe": {
+        "0": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "1": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "10": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "11": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "12": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "13": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "14": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "15": {
+          "bandit": 1,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 1,
+          "simulate": 3
+        },
+        "16": {
+          "bandit": 2,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "17": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "18": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 1,
+          "simulate": 3
+        },
+        "19": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "2": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "3": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "4": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "5": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "6": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "7": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "8": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "9": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        }
+      },
+      "hard-15-far": {
+        "0": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "1": {
+          "bandit": 2,
+          "heuristic": 2,
+          "mixture": 2,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "10": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "11": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "12": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "13": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "14": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "15": {
+          "bandit": 2,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "16": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "17": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "18": {
+          "bandit": 2,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "19": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "2": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "3": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "4": {
+          "bandit": 1,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "5": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "6": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "7": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "8": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "9": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        }
+      },
+      "mid-11": {
+        "0": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "1": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "10": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "11": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "12": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "13": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "14": {
+          "bandit": 2,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "15": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 1,
+          "simulate": 3
+        },
+        "16": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "17": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "18": {
+          "bandit": 1,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 1,
+          "simulate": 3
+        },
+        "19": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "2": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "3": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "4": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "5": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "6": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "7": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "8": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "9": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        }
+      },
+      "turbulent-11": {
+        "0": {
+          "bandit": 6,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "1": {
+          "bandit": 6,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "10": {
+          "bandit": 6,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "11": {
+          "bandit": 6,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "12": {
+          "bandit": 6,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "13": {
+          "bandit": 5,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "14": {
+          "bandit": 6,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "15": {
+          "bandit": 6,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "16": {
+          "bandit": 6,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "17": {
+          "bandit": 6,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "18": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 1,
+          "simulate": 6
+        },
+        "19": {
+          "bandit": 6,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "2": {
+          "bandit": 6,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "3": {
+          "bandit": 5,
+          "heuristic": 5,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "4": {
+          "bandit": 6,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "5": {
+          "bandit": 6,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "6": {
+          "bandit": 2,
+          "heuristic": 2,
+          "mixture": 3,
+          "reactive": 6,
+          "retrieve": 2,
+          "simulate": 2
+        },
+        "7": {
+          "bandit": 6,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "8": {
+          "bandit": 6,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "9": {
+          "bandit": 6,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        }
+      }
+    },
+    "unequal_exposure_groups": [
+      {
+        "counts": {
+          "bandit": 2,
+          "heuristic": 2,
+          "mixture": 2,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "regime": "hard-15-far",
+        "seed": 1
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "regime": "hard-15-far",
+        "seed": 4
+      },
+      {
+        "counts": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "regime": "hard-15-far",
+        "seed": 5
+      },
+      {
+        "counts": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "regime": "hard-15-far",
+        "seed": 13
+      },
+      {
+        "counts": {
+          "bandit": 2,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "regime": "hard-15-far",
+        "seed": 15
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "regime": "hard-15-far",
+        "seed": 16
+      },
+      {
+        "counts": {
+          "bandit": 2,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "regime": "hard-15-far",
+        "seed": 18
+      },
+      {
+        "counts": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "regime": "mid-11",
+        "seed": 6
+      },
+      {
+        "counts": {
+          "bandit": 2,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "regime": "mid-11",
+        "seed": 14
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 1,
+          "simulate": 3
+        },
+        "regime": "mid-11",
+        "seed": 15
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "regime": "mid-11",
+        "seed": 16
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 1,
+          "simulate": 3
+        },
+        "regime": "mid-11",
+        "seed": 18
+      },
+      {
+        "counts": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "regime": "hard-11-blunt-probe",
+        "seed": 6
+      },
+      {
+        "counts": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 2,
+          "simulate": 3
+        },
+        "regime": "hard-11-blunt-probe",
+        "seed": 14
+      },
+      {
+        "counts": {
+          "bandit": 2,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 3,
+          "simulate": 3
+        },
+        "regime": "hard-11-blunt-probe",
+        "seed": 16
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 1,
+          "simulate": 3
+        },
+        "regime": "hard-11-blunt-probe",
+        "seed": 15
+      },
+      {
+        "counts": {
+          "bandit": 3,
+          "heuristic": 3,
+          "mixture": 3,
+          "reactive": 3,
+          "retrieve": 1,
+          "simulate": 3
+        },
+        "regime": "hard-11-blunt-probe",
+        "seed": 18
+      },
+      {
+        "counts": {
+          "bandit": 2,
+          "heuristic": 2,
+          "mixture": 3,
+          "reactive": 6,
+          "retrieve": 2,
+          "simulate": 2
+        },
+        "regime": "turbulent-11",
+        "seed": 6
+      },
+      {
+        "counts": {
+          "bandit": 5,
+          "heuristic": 6,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "regime": "turbulent-11",
+        "seed": 13
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 1,
+          "simulate": 6
+        },
+        "regime": "turbulent-11",
+        "seed": 18
+      },
+      {
+        "counts": {
+          "bandit": 5,
+          "heuristic": 5,
+          "mixture": 6,
+          "reactive": 6,
+          "retrieve": 6,
+          "simulate": 6
+        },
+        "regime": "turbulent-11",
+        "seed": 3
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 1,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 1
+        },
+        "regime": "easy-7",
+        "seed": 3
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 1,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 1
+        },
+        "regime": "easy-7",
+        "seed": 4
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 1,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 1
+        },
+        "regime": "easy-7",
+        "seed": 8
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 2
+        },
+        "regime": "easy-7",
+        "seed": 1
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 2,
+          "simulate": 2
+        },
+        "regime": "easy-7",
+        "seed": 9
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 2
+        },
+        "regime": "easy-7",
+        "seed": 2
+      },
+      {
+        "counts": {
+          "bandit": 2,
+          "heuristic": 2,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 2
+        },
+        "regime": "easy-7",
+        "seed": 6
+      },
+      {
+        "counts": {
+          "bandit": 0,
+          "heuristic": 0,
+          "mixture": 0,
+          "reactive": 2,
+          "retrieve": 0,
+          "simulate": 0
+        },
+        "regime": "easy-7",
+        "seed": 14
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 2,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 2,
+          "simulate": 2
+        },
+        "regime": "easy-7",
+        "seed": 11
+      },
+      {
+        "counts": {
+          "bandit": 0,
+          "heuristic": 0,
+          "mixture": 1,
+          "reactive": 2,
+          "retrieve": 0,
+          "simulate": 0
+        },
+        "regime": "easy-7",
+        "seed": 15
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 2
+        },
+        "regime": "easy-7",
+        "seed": 7
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 2,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 2,
+          "simulate": 2
+        },
+        "regime": "easy-7",
+        "seed": 12
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 1
+        },
+        "regime": "easy-7",
+        "seed": 16
+      },
+      {
+        "counts": {
+          "bandit": 1,
+          "heuristic": 1,
+          "mixture": 2,
+          "reactive": 2,
+          "retrieve": 1,
+          "simulate": 2
+        },
+        "regime": "easy-7",
+        "seed": 18
+      }
+    ],
+    "unregistered_runs": []
+  },
+  "exposure_table": {
+    "bandit": {
+      "easy-7": 1.25,
+      "hard-11-blunt-probe": 2.85,
+      "hard-15-far": 2.65,
+      "mid-11": 2.65,
+      "turbulent-11": 5.45
+    },
+    "heuristic": {
+      "easy-7": 1.35,
+      "hard-11-blunt-probe": 3.0,
+      "hard-15-far": 2.85,
+      "mid-11": 2.8,
+      "turbulent-11": 5.5
+    },
+    "mixture": {
+      "easy-7": 1.7,
+      "hard-11-blunt-probe": 3.0,
+      "hard-15-far": 2.95,
+      "mid-11": 3.0,
+      "turbulent-11": 5.85
+    },
+    "reactive": {
+      "easy-7": 2.0,
+      "hard-11-blunt-probe": 3.0,
+      "hard-15-far": 3.0,
+      "mid-11": 3.0,
+      "turbulent-11": 6.0
+    },
+    "retrieve": {
+      "easy-7": 1.35,
+      "hard-11-blunt-probe": 2.7,
+      "hard-15-far": 2.75,
+      "mid-11": 2.7,
+      "turbulent-11": 5.55
+    },
+    "simulate": {
+      "easy-7": 1.6,
+      "hard-11-blunt-probe": 3.0,
+      "hard-15-far": 3.0,
+      "mid-11": 3.0,
+      "turbulent-11": 5.8
+    }
+  },
+  "headline": {
+    "bandit_ci": [
+      874.6675509741838,
+      1282.8379508142182
+    ],
+    "bandit_mean_spd": 1061.439711634869,
+    "bootstrap_seed": 0,
+    "cis_non_overlapping": false,
+    "heuristic_ci": [
+      985.580220772142,
+      2813.188192190835
+    ],
+    "heuristic_mean_spd": 1792.3214704241918,
+    "margin_met": false,
+    "n_pairs": 100,
+    "per_regime": {
+      "easy-7": {
+        "bandit_mean_spd": 2590.1288798023097,
+        "bandit_wins_pairs": 8,
+        "heuristic_mean_spd": 7145.181386936599,
+        "n": 20,
+        "relative_difference": -0.6374999122432645
+      },
+      "hard-11-blunt-probe": {
+        "bandit_mean_spd": 539.0039331849639,
+        "bandit_wins_pairs": 18,
+        "heuristic_mean_spd": 0.0,
+        "n": 20,
+        "relative_difference": Infinity
+      },
+      "hard-15-far": {
+        "bandit_mean_spd": 477.2314435056379,
+        "bandit_wins_pairs": 11,
+        "heuristic_mean_spd": 297.81197210144967,
+        "n": 20,
+        "relative_difference": 0.6024588942417298
+      },
+      "mid-11": {
+        "bandit_mean_spd": 815.3758438799994,
+        "bandit_wins_pairs": 17,
+        "heuristic_mean_spd": 504.4700267649396,
+        "n": 20,
+        "relative_difference": 0.6163018625880184
+      },
+      "turbulent-11": {
+        "bandit_mean_spd": 885.4584578014332,
+        "bandit_wins_pairs": 14,
+        "heuristic_mean_spd": 1014.1439663179701,
+        "n": 20,
+        "relative_difference": -0.12689076974322747
+      }
+    },
+    "relative_difference": -0.40778497097194505,
+    "relative_difference_ci": [
+      -0.5657405078586095,
+      -0.04510249912656696
+    ],
+    "resamples": 10000,
+    "sensitivity_unpaired_relative_difference_ci": [
+      -0.6598293312824767,
+      0.23340996654338939
+    ],
+    "verdict": "MATCHES"
+  },
+  "pareto": {
+    "bandit": {
+      "cost_per_episode_ci": [
+        0.0012175322206125004,
+        0.0015632888392875005
+      ],
+      "cost_per_episode_usd": 0.0013880193600000004,
+      "mean_spd": 1061.439711634869,
+      "n_conditions": 100,
+      "success_rate": 0.68425,
+      "success_rate_ci": [
+        0.6204999999999999,
+        0.7454999999999999
+      ]
+    },
+    "heuristic": {
+      "cost_per_episode_ci": [
+        0.0013439852580375007,
+        0.0016418918722375007
+      ],
+      "cost_per_episode_usd": 0.0014945295137500005,
+      "mean_spd": 1792.3214704241918,
+      "n_conditions": 100,
+      "success_rate": 0.204,
+      "success_rate_ci": [
+        0.13275,
+        0.27850624999999996
+      ]
+    },
+    "mixture": {
+      "cost_per_episode_ci": [
+        0.0017438893047875,
+        0.0021464744601625
+      ],
+      "cost_per_episode_usd": 0.00194256221575,
+      "mean_spd": 652.4391731194793,
+      "n_conditions": 100,
+      "success_rate": 0.6,
+      "success_rate_ci": [
+        0.54275,
+        0.65575
+      ]
+    },
+    "reactive": {
+      "cost_per_episode_ci": [
+        0.0007741635892249997,
+        0.0008462007763624995
+      ],
+      "cost_per_episode_usd": 0.0008101349359999997,
+      "mean_spd": 0.0,
+      "n_conditions": 100,
+      "success_rate": 0.0,
+      "success_rate_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "retrieve": {
+      "cost_per_episode_ci": [
+        0.0,
+        0.0
+      ],
+      "cost_per_episode_usd": 0.0,
+      "mean_spd": null,
+      "n_conditions": 100,
+      "success_rate": 0.6267499999999999,
+      "success_rate_ci": [
+        0.5675,
+        0.68425
+      ]
+    },
+    "simulate": {
+      "cost_per_episode_ci": [
+        0.007184514552881252,
+        0.008815276461468754
+      ],
+      "cost_per_episode_usd": 0.007991437733500003,
+      "mean_spd": 188.53414489963012,
+      "n_conditions": 100,
+      "success_rate": 0.42700000000000005,
+      "success_rate_ci": [
+        0.36475,
+        0.488
+      ]
+    }
+  },
+  "recovery": {
+    "paired_by_shift_index": {
+      "k=0": {
+        "bandit_faster": 24,
+        "both_recovered": 88,
+        "heuristic_faster": 32,
+        "mean_diff_steps_bandit_minus_heuristic": 21.988636363636363,
+        "n": 98
+      },
+      "k=1": {
+        "bandit_faster": 8,
+        "both_recovered": 62,
+        "heuristic_faster": 45,
+        "mean_diff_steps_bandit_minus_heuristic": 96.51612903225806,
+        "n": 80
+      },
+      "k=2": {
+        "bandit_faster": 9,
+        "both_recovered": 47,
+        "heuristic_faster": 43,
+        "mean_diff_steps_bandit_minus_heuristic": 84.82978723404256,
+        "n": 67
+      },
+      "k=3": {
+        "bandit_faster": 2,
+        "both_recovered": 13,
+        "heuristic_faster": 16,
+        "mean_diff_steps_bandit_minus_heuristic": 92.15384615384616,
+        "n": 18
+      },
+      "k=4": {
+        "bandit_faster": 6,
+        "both_recovered": 11,
+        "heuristic_faster": 12,
+        "mean_diff_steps_bandit_minus_heuristic": 39.81818181818182,
+        "n": 18
+      },
+      "k=5": {
+        "bandit_faster": 0,
+        "both_recovered": 9,
+        "heuristic_faster": 16,
+        "mean_diff_steps_bandit_minus_heuristic": 41.333333333333336,
+        "n": 16
+      }
+    },
+    "per_agent": {
+      "bandit": {
+        "censored": 63,
+        "mean_recovery_steps": 76.53846153846153,
+        "median_recovery_steps": 20.0,
+        "no_pre_shift_episode": 0,
+        "recovered": 234,
+        "shifts_experienced": 297,
+        "zero_baseline_cases": 98
+      },
+      "heuristic": {
+        "censored": 7,
+        "mean_recovery_steps": 15.957095709570957,
+        "median_recovery_steps": 8.0,
+        "no_pre_shift_episode": 0,
+        "recovered": 303,
+        "shifts_experienced": 310,
+        "zero_baseline_cases": 303
+      },
+      "mixture": {
+        "censored": 83,
+        "mean_recovery_steps": 99.11336032388664,
+        "median_recovery_steps": 24.0,
+        "no_pre_shift_episode": 0,
+        "recovered": 247,
+        "shifts_experienced": 330,
+        "zero_baseline_cases": 104
+      },
+      "reactive": {
+        "censored": 0,
+        "mean_recovery_steps": 16.470588235294116,
+        "median_recovery_steps": 16.0,
+        "no_pre_shift_episode": 0,
+        "recovered": 340,
+        "shifts_experienced": 340,
+        "zero_baseline_cases": 340
+      },
+      "retrieve": {
+        "censored": 0,
+        "mean_recovery_steps": 19.219269102990033,
+        "median_recovery_steps": 16.0,
+        "no_pre_shift_episode": 0,
+        "recovered": 301,
+        "shifts_experienced": 301,
+        "zero_baseline_cases": 301
+      },
+      "simulate": {
+        "censored": 84,
+        "mean_recovery_steps": 58.48770491803279,
+        "median_recovery_steps": 19.5,
+        "no_pre_shift_episode": 0,
+        "recovered": 244,
+        "shifts_experienced": 328,
+        "zero_baseline_cases": 163
+      }
+    }
+  },
+  "robustness_equal_exposure": {
+    "bandit_ci": [
+      799.696378105502,
+      1229.5759756188183
+    ],
+    "bandit_mean_spd": 999.1553374043793,
+    "bootstrap_seed": 0,
+    "cis_non_overlapping": false,
+    "heuristic_ci": [
+      1095.0082192929524,
+      3099.1747479449864
+    ],
+    "heuristic_mean_spd": 1991.4683004713243,
+    "margin_met": false,
+    "n_pairs": 90,
+    "per_regime": {
+      "easy-7": {
+        "bandit_mean_spd": 2649.415881657287,
+        "bandit_wins_pairs": 6,
+        "heuristic_mean_spd": 7939.090429929554,
+        "n": 18,
+        "relative_difference": -0.6662821887417655
+      },
+      "hard-11-blunt-probe": {
+        "bandit_mean_spd": 405.51193190217487,
+        "bandit_wins_pairs": 16,
+        "heuristic_mean_spd": 0.0,
+        "n": 18,
+        "relative_difference": Infinity
+      },
+      "hard-15-far": {
+        "bandit_mean_spd": 285.8117239283039,
+        "bandit_wins_pairs": 8,
+        "heuristic_mean_spd": 350.3670260017055,
+        "n": 17,
+        "relative_difference": -0.1842505067046103
+      },
+      "mid-11": {
+        "bandit_mean_spd": 734.2100883440008,
+        "bandit_wins_pairs": 15,
+        "heuristic_mean_spd": 560.5222519610439,
+        "n": 18,
+        "relative_difference": 0.3098678701430539
+      },
+      "turbulent-11": {
+        "bandit_mean_spd": 887.4052013342449,
+        "bandit_wins_pairs": 13,
+        "heuristic_mean_spd": 1067.5199645452317,
+        "n": 19,
+        "relative_difference": -0.16872261802402588
+      }
+    },
+    "relative_difference": -0.4982820780185617,
+    "relative_difference_ci": [
+      -0.6203331721860487,
+      -0.2245715447658426
+    ],
+    "resamples": 10000,
+    "sensitivity_unpaired_relative_difference_ci": [
+      -0.7249933710390939,
+      0.06873042324865145
+    ],
+    "verdict": "MATCHES"
+  },
+  "runs_root": "runs/exp-v1",
+  "signature": {
+    "bandit": [
+      {
+        "act": 0.21952861952861952,
+        "gather_evidence": 0.22424242424242424,
+        "n_steps": 2970,
+        "offset_bin": -60,
+        "retrieve": 0.37306397306397304,
+        "simulate": 0.18316498316498317
+      },
+      {
+        "act": 0.21717171717171718,
+        "gather_evidence": 0.22962962962962963,
+        "n_steps": 2970,
+        "offset_bin": -50,
+        "retrieve": 0.36936026936026933,
+        "simulate": 0.18383838383838383
+      },
+      {
+        "act": 0.19663299663299663,
+        "gather_evidence": 0.22087542087542086,
+        "n_steps": 2970,
+        "offset_bin": -40,
+        "retrieve": 0.3902356902356902,
+        "simulate": 0.19225589225589226
+      },
+      {
+        "act": 0.21683501683501682,
+        "gather_evidence": 0.2080808080808081,
+        "n_steps": 2970,
+        "offset_bin": -30,
+        "retrieve": 0.3939393939393939,
+        "simulate": 0.18114478114478114
+      },
+      {
+        "act": 0.20707070707070707,
+        "gather_evidence": 0.2222222222222222,
+        "n_steps": 2970,
+        "offset_bin": -20,
+        "retrieve": 0.397979797979798,
+        "simulate": 0.17272727272727273
+      },
+      {
+        "act": 0.19326599326599325,
+        "gather_evidence": 0.2101010101010101,
+        "n_steps": 2970,
+        "offset_bin": -10,
+        "retrieve": 0.4074074074074074,
+        "simulate": 0.1892255892255892
+      },
+      {
+        "act": 0.20304568527918782,
+        "gather_evidence": 0.21116751269035533,
+        "n_steps": 2955,
+        "offset_bin": 0,
+        "retrieve": 0.4304568527918782,
+        "simulate": 0.15532994923857868
+      },
+      {
+        "act": 0.23202170963364993,
+        "gather_evidence": 0.24423337856173677,
+        "n_steps": 2948,
+        "offset_bin": 10,
+        "retrieve": 0.34972862957937584,
+        "simulate": 0.17401628222523746
+      },
+      {
+        "act": 0.23285322359396435,
+        "gather_evidence": 0.25308641975308643,
+        "n_steps": 2916,
+        "offset_bin": 20,
+        "retrieve": 0.34122085048010975,
+        "simulate": 0.1728395061728395
+      },
+      {
+        "act": 0.23119777158774374,
+        "gather_evidence": 0.2378133704735376,
+        "n_steps": 2872,
+        "offset_bin": 30,
+        "retrieve": 0.3635097493036212,
+        "simulate": 0.1674791086350975
+      },
+      {
+        "act": 0.23057821922667612,
+        "gather_evidence": 0.2323518978361121,
+        "n_steps": 2819,
+        "offset_bin": 40,
+        "retrieve": 0.3625399077687123,
+        "simulate": 0.17452997516849947
+      },
+      {
+        "act": 0.22349570200573066,
+        "gather_evidence": 0.22564469914040114,
+        "n_steps": 2792,
+        "offset_bin": 50,
+        "retrieve": 0.37965616045845274,
+        "simulate": 0.17120343839541546
+      },
+      {
+        "act": 0.2068100358422939,
+        "gather_evidence": 0.22437275985663083,
+        "n_steps": 2790,
+        "offset_bin": 60,
+        "retrieve": 0.4103942652329749,
+        "simulate": 0.15842293906810037
+      },
+      {
+        "act": 0.20165945165945165,
+        "gather_evidence": 0.215007215007215,
+        "n_steps": 2772,
+        "offset_bin": 70,
+        "retrieve": 0.4062049062049062,
+        "simulate": 0.17712842712842713
+      },
+      {
+        "act": 0.20036697247706423,
+        "gather_evidence": 0.21541284403669725,
+        "n_steps": 2725,
+        "offset_bin": 80,
+        "retrieve": 0.42275229357798166,
+        "simulate": 0.1614678899082569
+      },
+      {
+        "act": 0.21015304217991787,
+        "gather_evidence": 0.22396416573348266,
+        "n_steps": 2679,
+        "offset_bin": 90,
+        "retrieve": 0.4068682344158268,
+        "simulate": 0.1590145576707727
+      },
+      {
+        "act": 0.2225575254620898,
+        "gather_evidence": 0.22821576763485477,
+        "n_steps": 2651,
+        "offset_bin": 100,
+        "retrieve": 0.3885326291965296,
+        "simulate": 0.16069407770652583
+      },
+      {
+        "act": 0.21322124570118456,
+        "gather_evidence": 0.21398547955674435,
+        "n_steps": 2617,
+        "offset_bin": 110,
+        "retrieve": 0.4054260603744746,
+        "simulate": 0.1673672143675965
+      },
+      {
+        "act": 0.2052797478329393,
+        "gather_evidence": 0.22655634357762017,
+        "n_steps": 2538,
+        "offset_bin": 120,
+        "retrieve": 0.4074074074074074,
+        "simulate": 0.1607565011820331
+      },
+      {
+        "act": 0.2199203187250996,
+        "gather_evidence": 0.22191235059760955,
+        "n_steps": 2510,
+        "offset_bin": 130,
+        "retrieve": 0.4,
+        "simulate": 0.15816733067729083
+      },
+      {
+        "act": 0.21,
+        "gather_evidence": 0.2196,
+        "n_steps": 2500,
+        "offset_bin": 140,
+        "retrieve": 0.4264,
+        "simulate": 0.144
+      },
+      {
+        "act": 0.20387565603552685,
+        "gather_evidence": 0.21558336697618086,
+        "n_steps": 2477,
+        "offset_bin": 150,
+        "retrieve": 0.4360113039967703,
+        "simulate": 0.144529672991522
+      },
+      {
+        "act": 0.21921182266009853,
+        "gather_evidence": 0.2348111658456486,
+        "n_steps": 2436,
+        "offset_bin": 160,
+        "retrieve": 0.3949096880131363,
+        "simulate": 0.1510673234811166
+      },
+      {
+        "act": 0.2281067556296914,
+        "gather_evidence": 0.2506255212677231,
+        "n_steps": 2398,
+        "offset_bin": 170,
+        "retrieve": 0.3628023352793995,
+        "simulate": 0.15846538782318598
+      },
+      {
+        "act": 0.3067226890756303,
+        "gather_evidence": 0.21428571428571427,
+        "n_steps": 238,
+        "offset_bin": 180,
+        "retrieve": 0.31512605042016806,
+        "simulate": 0.1638655462184874
+      }
+    ],
+    "heuristic": [
+      {
+        "act": 0.9838709677419355,
+        "gather_evidence": 0.0,
+        "n_steps": 3100,
+        "offset_bin": -60,
+        "retrieve": 0.016129032258064516,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9838709677419355,
+        "gather_evidence": 0.0,
+        "n_steps": 3100,
+        "offset_bin": -50,
+        "retrieve": 0.016129032258064516,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9838709677419355,
+        "gather_evidence": 0.0,
+        "n_steps": 3100,
+        "offset_bin": -40,
+        "retrieve": 0.016129032258064516,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9838709677419355,
+        "gather_evidence": 0.0,
+        "n_steps": 3100,
+        "offset_bin": -30,
+        "retrieve": 0.016129032258064516,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9838709677419355,
+        "gather_evidence": 0.0,
+        "n_steps": 3100,
+        "offset_bin": -20,
+        "retrieve": 0.016129032258064516,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9838709677419355,
+        "gather_evidence": 0.0,
+        "n_steps": 3100,
+        "offset_bin": -10,
+        "retrieve": 0.016129032258064516,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9430051813471503,
+        "gather_evidence": 0.0016191709844559584,
+        "n_steps": 3088,
+        "offset_bin": 0,
+        "retrieve": 0.055375647668393785,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9381107491856677,
+        "gather_evidence": 0.0,
+        "n_steps": 3070,
+        "offset_bin": 10,
+        "retrieve": 0.06188925081433225,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9381107491856677,
+        "gather_evidence": 0.0,
+        "n_steps": 3070,
+        "offset_bin": 20,
+        "retrieve": 0.06188925081433225,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9458128078817734,
+        "gather_evidence": 0.0,
+        "n_steps": 3045,
+        "offset_bin": 30,
+        "retrieve": 0.054187192118226604,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9619238476953907,
+        "gather_evidence": 0.0,
+        "n_steps": 2994,
+        "offset_bin": 40,
+        "retrieve": 0.03807615230460922,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9632107023411371,
+        "gather_evidence": 0.0,
+        "n_steps": 2990,
+        "offset_bin": 50,
+        "retrieve": 0.03678929765886288,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.96579476861167,
+        "gather_evidence": 0.0,
+        "n_steps": 2982,
+        "offset_bin": 60,
+        "retrieve": 0.03420523138832998,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9664429530201343,
+        "gather_evidence": 0.0,
+        "n_steps": 2980,
+        "offset_bin": 70,
+        "retrieve": 0.03355704697986577,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9550335570469799,
+        "gather_evidence": 0.0006711409395973154,
+        "n_steps": 2980,
+        "offset_bin": 80,
+        "retrieve": 0.04429530201342282,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.955585464333782,
+        "gather_evidence": 0.0,
+        "n_steps": 2972,
+        "offset_bin": 90,
+        "retrieve": 0.04441453566621804,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9562289562289562,
+        "gather_evidence": 0.0,
+        "n_steps": 2970,
+        "offset_bin": 100,
+        "retrieve": 0.04377104377104377,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9793103448275862,
+        "gather_evidence": 0.0,
+        "n_steps": 2900,
+        "offset_bin": 110,
+        "retrieve": 0.020689655172413793,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9885137486947442,
+        "gather_evidence": 0.0,
+        "n_steps": 2873,
+        "offset_bin": 120,
+        "retrieve": 0.01148625130525583,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9895470383275261,
+        "gather_evidence": 0.0,
+        "n_steps": 2870,
+        "offset_bin": 130,
+        "retrieve": 0.010452961672473868,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9895470383275261,
+        "gather_evidence": 0.0,
+        "n_steps": 2870,
+        "offset_bin": 140,
+        "retrieve": 0.010452961672473868,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9867595818815331,
+        "gather_evidence": 0.0,
+        "n_steps": 2870,
+        "offset_bin": 150,
+        "retrieve": 0.0132404181184669,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9742160278745644,
+        "gather_evidence": 0.0006968641114982578,
+        "n_steps": 2870,
+        "offset_bin": 160,
+        "retrieve": 0.025087108013937282,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9748427672955975,
+        "gather_evidence": 0.0,
+        "n_steps": 2862,
+        "offset_bin": 170,
+        "retrieve": 0.025157232704402517,
+        "simulate": 0.0
+      },
+      {
+        "act": 0.9755244755244755,
+        "gather_evidence": 0.0,
+        "n_steps": 286,
+        "offset_bin": 180,
+        "retrieve": 0.024475524475524476,
+        "simulate": 0.0
+      }
+    ],
+    "mixture": [
+      {
+        "act": 0.2636363636363636,
+        "gather_evidence": 0.24363636363636362,
+        "n_steps": 3300,
+        "offset_bin": -60,
+        "retrieve": 0.25696969696969696,
+        "simulate": 0.23575757575757575
+      },
+      {
+        "act": 0.2496969696969697,
+        "gather_evidence": 0.2545454545454545,
+        "n_steps": 3300,
+        "offset_bin": -50,
+        "retrieve": 0.25393939393939396,
+        "simulate": 0.24181818181818182
+      },
+      {
+        "act": 0.25303030303030305,
+        "gather_evidence": 0.25181818181818183,
+        "n_steps": 3300,
+        "offset_bin": -40,
+        "retrieve": 0.263030303030303,
+        "simulate": 0.23212121212121212
+      },
+      {
+        "act": 0.25636363636363635,
+        "gather_evidence": 0.23696969696969697,
+        "n_steps": 3300,
+        "offset_bin": -30,
+        "retrieve": 0.2606060606060606,
+        "simulate": 0.24606060606060606
+      },
+      {
+        "act": 0.25272727272727274,
+        "gather_evidence": 0.2509090909090909,
+        "n_steps": 3300,
+        "offset_bin": -20,
+        "retrieve": 0.24818181818181817,
+        "simulate": 0.24818181818181817
+      },
+      {
+        "act": 0.2315151515151515,
+        "gather_evidence": 0.26666666666666666,
+        "n_steps": 3300,
+        "offset_bin": -10,
+        "retrieve": 0.24606060606060606,
+        "simulate": 0.25575757575757574
+      },
+      {
+        "act": 0.25545454545454543,
+        "gather_evidence": 0.25727272727272726,
+        "n_steps": 3300,
+        "offset_bin": 0,
+        "retrieve": 0.23363636363636364,
+        "simulate": 0.25363636363636366
+      },
+      {
+        "act": 0.2506060606060606,
+        "gather_evidence": 0.25393939393939396,
+        "n_steps": 3300,
+        "offset_bin": 10,
+        "retrieve": 0.25333333333333335,
+        "simulate": 0.24212121212121213
+      },
+      {
+        "act": 0.2545454545454545,
+        "gather_evidence": 0.25757575757575757,
+        "n_steps": 3300,
+        "offset_bin": 20,
+        "retrieve": 0.24515151515151515,
+        "simulate": 0.24272727272727274
+      },
+      {
+        "act": 0.24151515151515152,
+        "gather_evidence": 0.24606060606060606,
+        "n_steps": 3300,
+        "offset_bin": 30,
+        "retrieve": 0.25696969696969696,
+        "simulate": 0.25545454545454543
+      },
+      {
+        "act": 0.24908869987849333,
+        "gather_evidence": 0.26944106925880923,
+        "n_steps": 3292,
+        "offset_bin": 40,
+        "retrieve": 0.24179829890643986,
+        "simulate": 0.2396719319562576
+      },
+      {
+        "act": 0.24984802431610942,
+        "gather_evidence": 0.24984802431610942,
+        "n_steps": 3290,
+        "offset_bin": 50,
+        "retrieve": 0.2592705167173252,
+        "simulate": 0.24103343465045593
+      },
+      {
+        "act": 0.25426829268292683,
+        "gather_evidence": 0.2573170731707317,
+        "n_steps": 3280,
+        "offset_bin": 60,
+        "retrieve": 0.24573170731707317,
+        "simulate": 0.2426829268292683
+      },
+      {
+        "act": 0.25595601710445937,
+        "gather_evidence": 0.24893097128894318,
+        "n_steps": 3274,
+        "offset_bin": 70,
+        "retrieve": 0.24923640806353084,
+        "simulate": 0.2458766035430666
+      },
+      {
+        "act": 0.2390903503380455,
+        "gather_evidence": 0.26490473263675474,
+        "n_steps": 3254,
+        "offset_bin": 80,
+        "retrieve": 0.24708051628764596,
+        "simulate": 0.24892440073755379
+      },
+      {
+        "act": 0.2505406240345999,
+        "gather_evidence": 0.24992276799505714,
+        "n_steps": 3237,
+        "offset_bin": 90,
+        "retrieve": 0.26413345690454126,
+        "simulate": 0.23540315106580167
+      },
+      {
+        "act": 0.26180124223602486,
+        "gather_evidence": 0.25527950310559006,
+        "n_steps": 3220,
+        "offset_bin": 100,
+        "retrieve": 0.23540372670807452,
+        "simulate": 0.24751552795031057
+      },
+      {
+        "act": 0.24960900844541759,
+        "gather_evidence": 0.24178917735376915,
+        "n_steps": 3197,
+        "offset_bin": 110,
+        "retrieve": 0.26118235846105725,
+        "simulate": 0.24741945573975602
+      },
+      {
+        "act": 0.23154893886601205,
+        "gather_evidence": 0.25023756731073804,
+        "n_steps": 3157,
+        "offset_bin": 120,
+        "retrieve": 0.2641748495407032,
+        "simulate": 0.25403864428254674
+      },
+      {
+        "act": 0.24045801526717558,
+        "gather_evidence": 0.2480916030534351,
+        "n_steps": 3144,
+        "offset_bin": 130,
+        "retrieve": 0.26208651399491095,
+        "simulate": 0.24936386768447838
+      },
+      {
+        "act": 0.2462375920589177,
+        "gather_evidence": 0.2696125520333013,
+        "n_steps": 3123,
+        "offset_bin": 140,
+        "retrieve": 0.23599103426192763,
+        "simulate": 0.24815882164585334
+      },
+      {
+        "act": 0.2659163987138264,
+        "gather_evidence": 0.24565916398713827,
+        "n_steps": 3110,
+        "offset_bin": 150,
+        "retrieve": 0.23890675241157555,
+        "simulate": 0.24951768488745982
+      },
+      {
+        "act": 0.2414790996784566,
+        "gather_evidence": 0.25787781350482314,
+        "n_steps": 3110,
+        "offset_bin": 160,
+        "retrieve": 0.2662379421221865,
+        "simulate": 0.23440514469453377
+      },
+      {
+        "act": 0.25916398713826366,
+        "gather_evidence": 0.26012861736334403,
+        "n_steps": 3110,
+        "offset_bin": 170,
+        "retrieve": 0.2337620578778135,
+        "simulate": 0.24694533762057877
+      },
+      {
+        "act": 0.19614147909967847,
+        "gather_evidence": 0.26366559485530544,
+        "n_steps": 311,
+        "offset_bin": 180,
+        "retrieve": 0.31511254019292606,
+        "simulate": 0.22508038585209003
+      }
+    ]
+  },
+  "spec": "experiments/exp-v1.json",
+  "verdict": "MATCHES"
+}

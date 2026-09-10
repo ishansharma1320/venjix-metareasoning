@@ -44,7 +44,8 @@ Public repo + writeup posted by **August 14, 2026**, regardless of outcome.
 - [x] Retrieve-only, simulate-only, fixed-mixture baselines
 - [x] Threshold heuristic
 - [x] Contextual-bandit arbiter
-- [ ] Shift experiments + plots
+- [x] Shift experiments + plots (exp-v1 complete 2026-09-10; registered verdict
+      **MATCHES** — see `results/exp-v1-analysis/` and docs/CLAUDE.md item 12)
 - [ ] Writeup
 
 ## Non-goals (see FUTURE.md)

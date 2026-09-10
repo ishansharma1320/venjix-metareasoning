@@ -1,0 +1,50 @@
+== Assertion set ==
+complete runs: 600 / registered 600  (incomplete dirs: 0, missing: 0)
+pairing: prefix divergences 0, unequal-exposure groups 35
+parse-error rate: bandit 0.0000, heuristic 0.0000, mixture 0.0000, reactive 0.0000, retrieve 0.0000, simulate 0.0000
+goal landed on agent cell: 11/1906 shifts (0.58%)
+
+== Exposure (mean shifts experienced, agent x regime) ==
+bandit     easy-7=1.25  hard-11-blunt-probe=2.85  hard-15-far=2.65  mid-11=2.65  turbulent-11=5.45
+heuristic  easy-7=1.35  hard-11-blunt-probe=3.00  hard-15-far=2.85  mid-11=2.80  turbulent-11=5.50
+mixture    easy-7=1.70  hard-11-blunt-probe=3.00  hard-15-far=2.95  mid-11=3.00  turbulent-11=5.85
+reactive   easy-7=2.00  hard-11-blunt-probe=3.00  hard-15-far=3.00  mid-11=3.00  turbulent-11=6.00
+retrieve   easy-7=1.35  hard-11-blunt-probe=2.70  hard-15-far=2.75  mid-11=2.70  turbulent-11=5.55
+simulate   easy-7=1.60  hard-11-blunt-probe=3.00  hard-15-far=3.00  mid-11=3.00  turbulent-11=5.80
+
+== Pareto (full roster) ==
+bandit     success 0.684 [0.620, 0.745]  cost/ep $0.0014  mean SPD 1061.4
+heuristic  success 0.204 [0.133, 0.279]  cost/ep $0.0015  mean SPD 1792.3
+mixture    success 0.600 [0.543, 0.656]  cost/ep $0.0019  mean SPD 652.4
+reactive   success 0.000 [0.000, 0.000]  cost/ep $0.0008  mean SPD 0.0
+retrieve   success 0.627 [0.568, 0.684]  cost/ep $0.0000  mean SPD zero-spend
+simulate   success 0.427 [0.365, 0.488]  cost/ep $0.0080  mean SPD 188.5
+
+== Recovery (Design decision 7) ==
+bandit     shifts 297, recovered 234, censored 63, median recovery 20 steps, zero-baseline 98
+heuristic  shifts 310, recovered 303, censored 7, median recovery 8 steps, zero-baseline 303
+mixture    shifts 330, recovered 247, censored 83, median recovery 24 steps, zero-baseline 104
+reactive   shifts 340, recovered 340, censored 0, median recovery 16 steps, zero-baseline 340
+retrieve   shifts 301, recovered 301, censored 0, median recovery 16 steps, zero-baseline 301
+simulate   shifts 328, recovered 244, censored 84, median recovery 20 steps, zero-baseline 163
+  paired k=0: n=98 bandit faster 24, heuristic faster 32, mean diff (b-h) +22.0 steps
+  paired k=1: n=80 bandit faster 8, heuristic faster 45, mean diff (b-h) +96.5 steps
+  paired k=2: n=67 bandit faster 9, heuristic faster 43, mean diff (b-h) +84.8 steps
+  paired k=3: n=18 bandit faster 2, heuristic faster 16, mean diff (b-h) +92.2 steps
+  paired k=4: n=18 bandit faster 6, heuristic faster 12, mean diff (b-h) +39.8 steps
+  paired k=5: n=16 bandit faster 0, heuristic faster 16, mean diff (b-h) +41.3 steps
+
+== Headline (full data, Design decision 8 / Amendment 10) ==
+pairs: 100  resamples: 10000  seed: 0
+bandit    mean SPD 1061.44  95% CI [874.67, 1282.84]
+heuristic mean SPD 1792.32  95% CI [985.58, 2813.19]
+relative difference -0.408  95% CI [-0.566, -0.045]  (margin >= 0.10: False; CIs non-overlapping: False)
+sensitivity (unpaired pooled bootstrap) rel-diff CI [-0.660, +0.233]
+  easy-7           bandit 2590.13 vs heuristic 7145.18  rel -0.637  bandit wins 8/20 pairs
+  hard-11-blunt-probe bandit 539.00 vs heuristic 0.00  rel +inf  bandit wins 18/20 pairs
+  hard-15-far      bandit 477.23 vs heuristic 297.81  rel +0.602  bandit wins 11/20 pairs
+  mid-11           bandit 815.38 vs heuristic 504.47  rel +0.616  bandit wins 17/20 pairs
+  turbulent-11     bandit 885.46 vs heuristic 1014.14  rel -0.127  bandit wins 14/20 pairs
+
+VERDICT: MATCHES
+robustness (equal exposure): MATCHES on 90 pairs — rel -0.498 CI [-0.620, -0.225]; bandit CI [799.70, 1229.58] vs heuristic CI [1095.01, 3099.17]
