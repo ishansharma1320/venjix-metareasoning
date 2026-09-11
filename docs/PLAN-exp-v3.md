@@ -60,9 +60,22 @@ scripts: `Qwen/Qwen3-8B` no-thinking (the Phase 1 baseline; expected dead),
 `Qwen/Qwen3-32B` no-thinking. Gate = reactive-only on the easiest regime
 (Empty-8x8), 20 seeds × 10 episodes. **Criterion (fixed after the mock rehearsal,
 before any model call): success rate ≥ the lower 95% bound of the mock random policy
-on the same gate — no move-fraction criterion (exp-v2 lesson).** The smallest GREEN
-substrate is chosen; its per-token serving price becomes the registered price table
-(decision (d)). Budget ≈ $5–8.
+on the same gate, p − 1.96·√(p(1−p)/200), where p is measured by running
+`scripts/policy_gate.py --backend mock` — no move-fraction criterion (exp-v2
+lesson).** The bar is written into this section (§4a) before the first model call.
+The smallest GREEN substrate is chosen; its per-token serving price becomes the
+registered price table (decision (d)). Budget ≈ $5–8. Serving note: a 30B/32B model
+in bf16 needs ~60–64 GB of weights; on an 80 GB A100 that leaves little KV room, so
+the gate pod may be an H100 NVL (94 GB) or use the model's FP8 checkpoint — whichever
+is used is recorded as the serving config and re-used for M4.
+
+### 4a. Declared gate bar (2026-09-11, from the mock floor run; before any model call)
+
+`scripts/policy_gate.py --set experiments/exp-v3.json --backend mock` on empty-8,
+20 seeds × 10 episodes: mock random policy success **p = 0.320** (move fraction
+0.692, 5,239 steps). Lower 95% bound = 0.320 − 1.96·√(0.320·0.680/200) = **0.255**.
+**The M2 gate passes iff a candidate's reactive-only success rate on the same gate
+is ≥ 0.255.** No other criterion.
 
 ## 5. Metric (fixes exp-v1 finding 1)
 
@@ -84,6 +97,16 @@ as docs/ANALYSIS.md + Amendment 10. Zero-spend agents excluded from ratios.
 | empty-12-turbulent | 12×12 | 48 | six shifts, distance 4–6 |
 
 20 seeds × 40 episodes × 6 agents × 4 regimes = **480 conditions**.
+
+### 6a. Mock dress rehearsal (2026-09-11, structural only — no model-behaviour claims)
+
+480/480 mock conditions ran, 0 failures, pairing prefix-consistent. Mean shifts
+experienced per agent (of 2 / 3 / 3 / 6 scheduled): empty-8 1.7–1.85, empty-12
+2.0–2.95, empty-16-far 2.45–3.0, empty-12-turbulent 4.9–6.0; only 7/480 conditions
+saw zero shifts. Mock steps per episode range from ~8 (retrieve, empty-8) to ~53
+(reactive, empty-16-far). **Schedules in §6 are kept as drafted.** The rehearsal
+also caught a real defect (zero placeholder prices → undefined SPD → summary crash),
+fixed before any real data exists.
 
 ## 7. Cost & time (estimate, to be replaced by the gate's measurements)
 
