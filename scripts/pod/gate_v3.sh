@@ -14,7 +14,8 @@ BAR="${2:-0.255}"
 phase() { echo "PHASE:$1:$2 $(date -u +%H:%M:%S)"; }
 
 cd /workspace/venjix-code
-uv sync -q >/dev/null 2>&1 || true
+uv sync --group minigrid -q >/dev/null 2>&1 || { phase "uv-sync-minigrid" FAIL; exit 1; }
+uv run python -c "import minigrid, gymnasium; print('minigrid', minigrid.__version__)" || { phase "minigrid-import" FAIL; exit 1; }
 for MODEL in $MODELS; do
   TAG=$(echo "$MODEL" | tr '/' '-')
   # weights (public) -> persistent cache; sequential large files, fine on the volume
