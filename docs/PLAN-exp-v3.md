@@ -160,6 +160,15 @@ rehearsal is re-run; **the world-model gate is re-run on the 8B with this prompt
 and must be GREEN before M3.** If it is not, the substrate escalates per §4 (same
 prompt, next candidate), on record.
 
+### 4f. World-model gate, egocentric prompt: GREEN (2026-09-11 ~20:45 UTC) — M2 closed
+
+`Qwen/Qwen3-8B`, bf16, thinking off, 500 MiniGrid cases, egocentric world-model
+prompt: misprediction rate **0.060, 95% CI [0.040, 0.080] — GREEN**, 0 parse
+errors; by action: forward 0.086, left 0.000, right 0.000 (all residual error is on
+move outcomes, i.e. the informative part). Report:
+`results/exp-v3-gate/world-model/`. **M2 is closed: substrate = Qwen/Qwen3-8B, both
+prompts final, both gates GREEN.** Cost of M2 in total ≈ $1.60.
+
 ## 5. Metric (fixes exp-v1 finding 1)
 
 Success-per-dollar per (agent, regime) = **pooled**: total successes / total dollars
