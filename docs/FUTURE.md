@@ -35,6 +35,15 @@ and close the file.
   exists; implementation is Phase 2). Phase 1 shifts are reward relocation only.
 - **Standard benchmark ports** — ALFWorld / WebArena variants with injected
   nonstationarity, for external validity. Phase 2 if Phase 1 lands.
+  *2026-09-10 refinement (post exp-v1):* adopt-and-modify rather than build. Order:
+  **MiniGrid/BabyAI** first (same shape as the Phase 1 gridworld, Gym API, language
+  missions; shifts = relocate goal/keys/doors between episodes; keeps modes, cost
+  accounting, pairing and analysis unchanged), then **ALFWorld** (move objects /
+  receptacles between episodes) only after the *policy gate* shows the chosen model
+  functions there; WebArena out of budget. Carry-overs from exp-v1: run the policy
+  gate before registering anything; register success-per-dollar as a pooled ratio or
+  paired log-ratio, not a mean of per-condition ratios; pick a substrate whose
+  non-thinking policy moves, or budget for thinking.
 - **Additional agent modes** — asking a human, delegating to a sub-agent, tool synthesis.
 - **Richer world models** — fine-tuned or distilled world models instead of prompted LLM
   rollouts.
