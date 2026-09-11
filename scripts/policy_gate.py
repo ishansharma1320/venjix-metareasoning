@@ -78,6 +78,7 @@ def main() -> None:
 
     steps = moves = successes = episodes = forced = policy_calls = out_tokens = in_tokens = 0
     evidence_actions = {"gridworld": "probe", "minigrid": "left"}[env_kind]
+    action_counts: dict[str, int] = {}
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         for seed, summary in pool.map(one, conds):
             for line in (Path(summary.run_dir) / "episodes.jsonl").open():
@@ -85,6 +86,7 @@ def main() -> None:
                 if r["type"] == "step":
                     steps += 1
                     moves += r["action"] != evidence_actions
+                    action_counts[r["action"]] = action_counts.get(r["action"], 0) + 1
                     policy_calls += r["llm_calls"]
                     out_tokens += r["output_tokens"]
                     in_tokens += r["input_tokens"]
@@ -116,12 +118,16 @@ def main() -> None:
         "mean_output_tokens_per_policy_call": (out_tokens / policy_calls if policy_calls else 0.0),
         "mean_input_tokens_per_policy_call": (in_tokens / policy_calls if policy_calls else 0.0),
         "criterion": criterion, "success_bar": args.success_bar, "verdict": verdict,
+        # informational (PLAN §4b proposal): share of the most frequent action
+        "action_counts": action_counts,
+        "max_action_share": (max(action_counts.values()) / steps if steps else 0.0),
     }
     (out_dir / "report.json").write_text(json.dumps(report, indent=2))
     print(f"\nsteps {steps}  move fraction {move_fraction:.3f}  success rate {success_rate:.3f} "
           f"(lower 95% bound {implied_bar:.3f})  forced-answer rate {report['forced_answer_rate']:.3f}  "
           f"tokens/policy call in {report['mean_input_tokens_per_policy_call']:.0f} / out "
-          f"{report['mean_output_tokens_per_policy_call']:.0f}")
+          f"{report['mean_output_tokens_per_policy_call']:.0f}  max action share {report['max_action_share']:.3f} "
+          f"{dict(sorted(action_counts.items(), key=lambda kv: -kv[1]))}")
     print(f"POLICY GATE: {verdict}  ({criterion})")
     print(f"report: {out_dir}/report.json")
 

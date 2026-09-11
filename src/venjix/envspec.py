@@ -130,6 +130,62 @@ def minigrid_next(size: int, pos: tuple[int, int], direction: str, action: str):
     return pos, direction
 
 
+def egocentric_goal_offset(direction: str, offset: tuple[int, int]) -> tuple[int, int]:
+    """World-frame (dx, dy) -> (ahead, right) in the agent's frame."""
+    dx, dy = offset
+    if direction == "right":
+        return dx, dy
+    if direction == "down":
+        return dy, -dx
+    if direction == "left":
+        return -dx, -dy
+    return -dy, dx  # up
+
+
+def egocentric_summary(obs: Observation) -> dict[str, str]:
+    """Agent-relative description of the observation, derived from the rendered
+    view (rows top = farthest, agent at the bottom center) and the goal offset."""
+    rows = [r for r in obs.view.split("\n") if r] if obs.view else []
+    if not rows or any(len(r) != len(rows[0]) for r in rows) or len(rows[0]) < 3:
+        rows = []  # malformed / absent view: everything reads as "not visible"
+    h = len(rows)
+    c = (len(rows[0]) // 2) if rows else 0
+    # cells of floor straight ahead before a wall / the edge of sight
+    free = 0
+    for j in range(h - 2, -1, -1):
+        ch = rows[j][c]
+        if ch in ("#", "?"):
+            break
+        free += 1
+    ahead_cell = rows[h - 2][c] if h >= 2 else "?"
+    if h < 2:
+        free = 0
+    if ahead_cell == "G":
+        ahead = "the goal, 1 cell away"
+    elif ahead_cell in ("#", "?"):
+        ahead = "a wall (moving forward does nothing)"
+    else:
+        ahead = f"open floor, {free} cell{'s' if free != 1 else ''} until a wall"
+    left_cell = rows[h - 1][c - 1] if h and c >= 1 else "?"
+    right_cell = rows[h - 1][c + 1] if h and c + 1 < len(rows[h - 1]) else "?"
+    name = {"#": "a wall", ".": "open floor", "G": "the goal", "?": "not visible"}
+    left = name.get(left_cell, "not visible")
+    right = name.get(right_cell, "not visible")
+    if obs.probe_result is None or obs.dir is None:
+        goal = "not in view"
+    else:
+        a, r = egocentric_goal_offset(obs.dir, obs.probe_result)
+        parts = []
+        if a > 0:
+            parts.append(f"{a} cell{'s' if a != 1 else ''} ahead")
+        if r > 0:
+            parts.append(f"{r} cell{'s' if r != 1 else ''} to your right")
+        elif r < 0:
+            parts.append(f"{-r} cell{'s' if -r != 1 else ''} to your left")
+        goal = "in view, " + " and ".join(parts) if parts else "right here"
+    return {"ahead": ahead, "left": left, "right": right, "goal": goal}
+
+
 class MiniGridSpec(EnvSpec):
     """MiniGrid-Empty, egocentric actions (exp-v3 plan §3, decisions b, c)."""
 
@@ -164,24 +220,26 @@ class MiniGridSpec(EnvSpec):
         return "right" if delta == 1 else "left"  # 2 or 3 -> left (2 = either)
 
     def policy_prompt(self, env_config: GridworldConfig, obs: Observation) -> str:
-        n = env_config.size
+        """EGOCENTRIC encoding (PLAN-exp-v3 §4c, 2026-09-11): the M2 diagnostic showed
+        every candidate model reads world-frame (x, y, dx, dy) + an ASCII view as
+        "goal ahead" and walks into walls, while the same facts in agent-relative
+        words are acted on correctly. Absolute coordinates stay in the code (memory,
+        planner, world model); the policy LLM sees only what is relative to it."""
+        ego = egocentric_summary(obs)
         rules = (
-            f"You control an agent in a {n}x{n} MiniGrid room. Walkable cells have x and y "
-            f"from 1 to {n - 2}; the outer ring is wall. Coordinates are (x, y) with (1, 1) "
-            f"the top-left walkable cell; x grows to the right, y grows downward. "
-            f"You only see the 7x7 area in front of you (view below: A = you at the bottom "
-            f"center looking up the view, . = floor, # = wall, G = the goal, ? = not visible). "
-            f"A green goal square gives reward 1; stepping onto it ends the episode. "
-            f"Actions: left (turn 90 degrees left, no movement), right (turn 90 degrees "
-            f"right, no movement), forward (move one cell in the facing direction; walls "
-            f"block). You have {env_config.step_budget} steps per episode."
+            f"You control an agent in a {env_config.size}x{env_config.size} grid room with walls "
+            f"around it. A goal square gives reward 1; stepping onto it ends the episode. "
+            f"You can only see the area in front of you. Actions: left (turn 90 degrees left, "
+            f"no movement), right (turn 90 degrees right, no movement), forward (move one cell "
+            f"ahead; a wall blocks it and you stay put). You have {env_config.step_budget} "
+            f"steps per episode."
         )
-        seen = "no" if obs.probe_result is None else f"yes, at offset (dx, dy) = {obs.probe_result}"
         return (
             f"{rules}\n"
-            f"Current position: {obs.pos}, facing {obs.dir}. Steps used: {obs.steps_used}.\n"
-            f"Goal in view: {seen}.\n"
-            f"View:\n{obs.view}\n"
+            f"Steps used: {obs.steps_used}.\n"
+            f"Directly ahead of you: {ego['ahead']}.\n"
+            f"On your left-hand side: {ego['left']}. On your right-hand side: {ego['right']}.\n"
+            f"Goal: {ego['goal']}.\n"
             f"Reply with exactly one action word: left, right, or forward."
         )
 

@@ -141,12 +141,46 @@ def test_mock_world_model_predicts_minigrid_truth():
     assert re.fullmatch(MINIGRID_PREDICT_RESPONSE_REGEX, p.raw_text)
 
 
+def test_egocentric_summary_and_goal_offsets():
+    from venjix.envspec import egocentric_goal_offset, egocentric_summary
+    # world (dx, dy) -> (ahead, right) per facing
+    assert egocentric_goal_offset("right", (3, 0)) == (3, 0)
+    assert egocentric_goal_offset("right", (0, 3)) == (0, 3)      # +y is to the right when facing right
+    assert egocentric_goal_offset("down", (0, 3)) == (3, 0)       # ahead
+    assert egocentric_goal_offset("down", (3, 0)) == (0, -3)      # to the left
+    assert egocentric_goal_offset("left", (-2, 0)) == (2, 0)
+    assert egocentric_goal_offset("up", (0, -2)) == (2, 0)
+    assert egocentric_goal_offset("up", (2, 0)) == (0, 2)
+    # real observations: wall ahead + goal to the right-hand side
+    env = MiniGridEmpty(cfg(), seed=3); o = env.reset()
+    for _ in range(5): o = env.step("forward")
+    env._goal = (6, 4); env._place_goal()
+    o = env._observation(env._env.gen_obs()["image"], 0, False, False)
+    s = egocentric_summary(o)
+    assert s["ahead"].startswith("a wall") and s["goal"] == "in view, 3 cells to your right"
+    assert "wall" in s["left"] and "floor" in s["right"]
+    # goal straight ahead from the start
+    env2 = MiniGridEmpty(cfg(), seed=3); o2 = env2.reset(); env2._goal = (4, 1); env2._place_goal()
+    o2 = env2._observation(env2._env.gen_obs()["image"], 0, False, False)
+    s2 = egocentric_summary(o2)
+    assert s2["goal"] == "in view, 3 cells ahead" and s2["ahead"].startswith("open floor")
+    prompt = MINIGRID.policy_prompt(cfg(), o2)
+    assert "3 cells ahead" in prompt and "(x, y)" not in prompt and "View:" not in prompt
+
+
 def test_mock_policy_uses_prompt_vocabulary():
     client = MockModel(seed=0)
+    view = "\n".join(["......." for _ in range(6)] + ["...A..."])
     obs = Observation(pos=(2, 2), reward=0, done=False, success=False, probe_result=None,
-                      steps_used=0, dir="right", view="......\n" * 7)
+                      steps_used=0, dir="right", view=view)
     text = client.complete(MINIGRID.policy_prompt(cfg(), obs)).text
     assert text.split(": ")[1] in ("left", "right", "forward")
+    # a malformed (ragged / absent) view must not crash the prompt builder
+    for bad_view in ("...\n.......\n..", "", None):
+        bad = Observation(pos=(2, 2), reward=0, done=False, success=False, probe_result=None,
+                          steps_used=0, dir="right", view=bad_view)
+        p = MINIGRID.policy_prompt(cfg(), bad)
+        assert "Reply with exactly one action word" in p and "not visible" in p
 
 
 @pytest.mark.parametrize("agent", ["reactive", "retrieve", "simulate", "mixture", "heuristic", "bandit"])

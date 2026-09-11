@@ -1,0 +1,22 @@
+model: Qwen/Qwen3-30B-A3B-Instruct-2507
+
+=== start (1,1) facing right, goal not in view | probe_result=None
+  [registered-style prompt]      'forward'
+  [comprehension of the view]    '(1) Floor  \n(2) Not visible'
+  [explicit-neighbour encoding]  'forward'
+  [registered prompt, thinking]  'forward'
+  [explicit, thinking]           'forward'
+
+=== (6,1) facing right: WALL ahead, goal 3 cells to the right-hand side | probe_result=(0, 3)
+  [registered-style prompt]      'forward'
+  [comprehension of the view]    '(1) Floor  \n(2) Directly in front, 3 steps away (forward 3)'
+  [explicit-neighbour encoding]  'forward'
+  [registered prompt, thinking]  'forward'
+  [explicit, thinking]           'forward'
+
+=== (1,1) facing right: goal straight ahead 3 cells | probe_result=(3, 0)
+  [registered-style prompt]      'forward'
+  [comprehension of the view]    '(1) Floor  \n(2) To the right, 3 steps ahead (at offset (3, 0))'
+  [explicit-neighbour encoding]  'forward'
+  [registered prompt, thinking]  'forward'
+  [explicit, thinking]           'forward'

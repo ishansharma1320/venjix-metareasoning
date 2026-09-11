@@ -99,6 +99,29 @@ declared before the remaining candidates' results are known. If adopted, the 8B
 verdict becomes RED and the smallest GREEN candidate among the rest is chosen; if
 not adopted, the §4 rule stands and the 8B is the substrate as written.
 
+### 4c. M2 round 1 complete; prompt defect found and fixed (2026-09-11 ~20:10 UTC)
+
+All three candidates on the round-1 prompt: **identical** 4,823 steps, success 0.270,
+`forward` on 100% / 100% / 97% of steps (8B / 30B-A3B / 32B-FP8). Three models of very
+different size failing identically is a prompt defect. Diagnostic on the live 30B
+(`scripts/pod/prompt_diagnostic_v3.py`, logs in `results/exp-v3-gate/`): with a wall
+directly ahead and the goal 3 cells to its right-hand side, the model reads the
+world-frame offset (dx, dy) = (0, 3) as "directly in front, 3 steps away", calls the
+cell ahead "floor" (it cannot read the ASCII view), and answers `forward` — with or
+without thinking, and even when told in words that the cell ahead is wall while the
+offset stays world-frame. The same facts stated **egocentrically** ("directly ahead
+of you: a wall … the goal is 3 cells to your right") get `right` every time, thinking
+off, on every phrasing tried.
+
+**Decision (b) is revised before registration:** the policy LLM sees an egocentric
+summary — what is directly ahead (floor / wall / the goal, and free cells until a
+wall), what is on the left- and right-hand cells, and the goal as "N cells ahead and M
+to your left/right" — no coordinates, no ASCII view. Absolute (x, y, facing) stays in
+the code for memory, the planner and the world model, unchanged. This is not tuning
+to a result: it is the same information the round-1 prompt carried, re-encoded so the
+model can act on it; it applies identically to every agent's act mode; and every
+candidate is **re-gated with the final prompt** (round 2) before any choice is made.
+
 ## 5. Metric (fixes exp-v1 finding 1)
 
 Success-per-dollar per (agent, regime) = **pooled**: total successes / total dollars
