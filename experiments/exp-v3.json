@@ -7,8 +7,9 @@
   "n_episodes": 40,
   "model": "TBD-at-M3",
   "prices": {
-    "input_per_mtok_usd": 0.0,
-    "output_per_mtok_usd": 0.0
+    "input_per_mtok_usd": 0.117,
+    "output_per_mtok_usd": 0.455,
+    "note": "PLACEHOLDER for the mock rehearsal (Amendment 8 table); replaced at M3 by the chosen substrate's real per-token price"
   },
   "agents": [
     "reactive",

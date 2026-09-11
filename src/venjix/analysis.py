@@ -585,6 +585,12 @@ def format_summary(report: dict) -> str:
 
     h = report["headline"]
     lines.append("\n== Headline (full data, Design decision 8 / Amendment 10) ==")
+    if not h.get("n_pairs"):
+        lines.append("no bandit/heuristic pairs with a defined success-per-dollar "
+                     "(zero-spend conditions?) — no verdict")
+        lines.append("")
+        lines.append("VERDICT: NONE")
+        return "\n".join(lines)
     lines.append(f"pairs: {h['n_pairs']}  resamples: {h['resamples']}  seed: {h['bootstrap_seed']}")
     lines.append(f"bandit    mean SPD {h['bandit_mean_spd']:.2f}  95% CI [{h['bandit_ci'][0]:.2f}, {h['bandit_ci'][1]:.2f}]")
     lines.append(f"heuristic mean SPD {h['heuristic_mean_spd']:.2f}  95% CI [{h['heuristic_ci'][0]:.2f}, {h['heuristic_ci'][1]:.2f}]")
