@@ -128,6 +128,8 @@ def test_gather_never_spins_forever():
 
 
 def test_mock_world_model_predicts_minigrid_truth():
+    import re
+    from venjix.world import build_minigrid_predict_prompt
     client = MockModel(seed=0)
     wm = MiniGridWorldModel(client, cfg())
     p = wm.predict(((2, 2), "up"), "forward", (2, 1))
@@ -137,8 +139,16 @@ def test_mock_world_model_predicts_minigrid_truth():
     p = wm.predict(((3, 3), "right"), "right", None)
     assert (p.next_pos, p.next_dir) == ((3, 3), "down")
     assert p.next_state == ((3, 3), "down")
-    import re
     assert re.fullmatch(MINIGRID_PREDICT_RESPONSE_REGEX, p.raw_text)
+    # a turn while standing on the believed goal keeps reward 1 semantics ("right here")
+    p = wm.predict(((4, 4), "right"), "left", (4, 4))
+    assert (p.next_pos, p.next_dir, p.reward) == ((4, 4), "up", 1)
+    # prompt is egocentric: no coordinates, agent-frame goal description
+    text = build_minigrid_predict_prompt(8, (5, 3), "down", "forward", (6, 3))
+    assert "DIRECTLY_AHEAD: floor" in text and "BELIEVED_GOAL: 1 cell to your left" in text
+    assert "(5, 3)" not in text
+    text = build_minigrid_predict_prompt(8, (6, 1), "right", "forward", None)
+    assert "DIRECTLY_AHEAD: a wall" in text and "BELIEVED_GOAL: unknown" in text
 
 
 def test_egocentric_summary_and_goal_offsets():

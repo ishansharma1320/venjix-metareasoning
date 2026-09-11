@@ -151,6 +151,20 @@ class MockModel(LLMClient):
         """Answer a world-model prompt as a *competent* model: true clipped
         dynamics, reward 1 iff the next cell is the stated believed goal.
         Deterministic and exact so harness tests can assert optimal behavior."""
+        if "DIRECTLY_AHEAD:" in prompt:
+            # MiniGrid egocentric world model (exp-v3 PLAN §4e): forward moves
+            # iff floor is ahead; reward iff the believed goal is exactly the
+            # cell you end on ("1 cell ahead" after a successful forward, or
+            # "right here" after a turn — i.e. standing on it already).
+            action = _FIELD_RES["action"].search(prompt).group(1).lower()
+            ahead = re.search(r"DIRECTLY_AHEAD:\s*(floor|a wall)", prompt).group(1)
+            goal = re.search(r"BELIEVED_GOAL:\s*(.+)", prompt).group(1).strip()
+            moved = action == "forward" and ahead == "floor"
+            if moved:
+                reward = 1 if goal == "1 cell ahead" else 0
+            else:
+                reward = 1 if goal == "right here" else 0
+            return f"MOVED: {'yes' if moved else 'no'} REWARD: {reward}"
         size = int(_FIELD_RES["grid"].search(prompt).group(1))
         pos_match = _FIELD_RES["pos"].search(prompt)
         pos = (int(pos_match.group(1)), int(pos_match.group(2)))
@@ -161,23 +175,6 @@ class MockModel(LLMClient):
             if goal_match.group(3) is not None
             else (int(goal_match.group(1)), int(goal_match.group(2)))
         )
-
-        facing_match = _FIELD_RES["facing"].search(prompt)
-        if facing_match is not None:
-            # MiniGrid egocentric truth (exp-v3): turns rotate, forward moves
-            # unless the outer wall ring blocks (walkable 1..size-2).
-            direction = facing_match.group(1)
-            if action in ("left", "right"):
-                i = _MG_DIRS.index(direction)
-                direction = _MG_DIRS[(i - 1) % 4] if action == "left" else _MG_DIRS[(i + 1) % 4]
-                next_pos = pos
-            else:
-                dx, dy = _MG_DELTA[direction]
-                cand = (pos[0] + dx, pos[1] + dy)
-                inside = 1 <= cand[0] <= size - 2 and 1 <= cand[1] <= size - 2
-                next_pos = cand if inside else pos
-            reward = 1 if goal is not None and next_pos == goal else 0
-            return f"NEXT: {next_pos} FACING: {direction} REWARD: {reward}"
 
         dr, dc = _MOVES.get(action, (0, 0))  # probe/unknown: stay in place
         last = size - 1

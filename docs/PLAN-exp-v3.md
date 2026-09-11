@@ -122,6 +122,44 @@ to a result: it is the same information the round-1 prompt carried, re-encoded s
 model can act on it; it applies identically to every agent's act mode; and every
 candidate is **re-gated with the final prompt** (round 2) before any choice is made.
 
+### 4d. M2 round 2 — final prompt, all candidates re-gated (2026-09-11 20:08–20:14 UTC)
+
+| candidate | success (bar ≥ 0.255) | steps | actions | max action share | verdict |
+|---|---|---|---|---|---|
+| `Qwen/Qwen3-8B` (bf16, no thinking) | **1.000** | 1,495 | forward 85%, right 15% | 0.855 | GREEN |
+| `Qwen/Qwen3-30B-A3B-Instruct-2507` (bf16) | 0.560 | 3,624 | left 41%, forward 31%, right 28% | 0.406 | GREEN |
+| `Qwen/Qwen3-32B-FP8` | 0.820 | 3,273 | forward 82%, left 18% | 0.815 | GREEN |
+
+Reports: `results/exp-v3-gate/round2/`. **Substrate by the §4 rule (smallest GREEN):
+`Qwen/Qwen3-8B`, bf16, thinking off, on the A100 pod** — the exp-v1 model and
+serving stack, now with a live act policy. The §4b degeneracy proposal is moot for
+the choice (the 8B's max action share is 0.855 < 0.90) but is carried into the
+registration as a standing gate criterion. Prompt tokens per policy call ≈ 170
+(vs 240 for the ASCII-view prompt). M2 cost ≈ $2.
+
+### 4e. World-model gate on the chosen substrate: RED on the world-frame prompt;
+egocentric world model (2026-09-11 ~20:20 UTC, before registration)
+
+`runs/calibration/20260911T201627-Qwen-Qwen3-8B` (500 MiniGrid cases, world-frame
+prompt "POSITION / FACING / ACTION → NEXT / FACING / REWARD"): misprediction rate
+**0.644 [0.602, 0.686] — RED**. Failure classes: forward moved along the wrong
+axis (183/500; e.g. facing down → y−1), "turn left" answered as "now facing left"
+(54), right turns wrong in facing and/or position (74). The same world-frame
+rotation reasoning that broke the policy prompt (§4c) breaks the world model.
+
+**Design change, declared before registration:** turns are deterministic and known
+to the agent, so predicting them adds noise to the signal, never information. The
+MiniGrid world model now takes **egocentric facts computed by the code from the
+absolute state** — what is directly ahead (floor / a wall, from the room geometry)
+and where the believed goal is in the agent's frame — and the LLM predicts only
+`MOVED: yes|no` and `REWARD: 0|1`; the code applies the turn and the move. The
+signal's meaning is preserved exactly: a misprediction is a wrong move outcome or a
+wrong reward expectation — the latter being the stale-belief surprise the study
+measures. Calibration cases are unchanged (same generator, same strata); the mock
+rehearsal is re-run; **the world-model gate is re-run on the 8B with this prompt
+and must be GREEN before M3.** If it is not, the substrate escalates per §4 (same
+prompt, next candidate), on record.
+
 ## 5. Metric (fixes exp-v1 finding 1)
 
 Success-per-dollar per (agent, regime) = **pooled**: total successes / total dollars
