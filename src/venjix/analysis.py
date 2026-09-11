@@ -231,6 +231,11 @@ class Pair:
     heuristic_spd: float
     bandit_shifts: int
     heuristic_shifts: int
+    # raw counts for the pooled estimator (exp-v3 plan §5 / Amendment 13)
+    bandit_successes: int = 0
+    bandit_cost: float = 0.0
+    heuristic_successes: int = 0
+    heuristic_cost: float = 0.0
 
     @property
     def equal_exposure(self) -> bool:
@@ -249,8 +254,61 @@ def build_pairs(runs: list[Run]) -> list[Pair]:
         b, h = d["bandit"], d["heuristic"]
         if b.spd is None or h.spd is None:
             continue  # zero-spend — cannot happen for these agents, guarded anyway
-        pairs.append(Pair(regime, seed, b.spd, h.spd, len(b.shifts), len(h.shifts)))
+        pairs.append(Pair(regime, seed, b.spd, h.spd, len(b.shifts), len(h.shifts),
+                          b.successes, b.cost_usd, h.successes, h.cost_usd))
     return pairs
+
+
+def headline_pooled(pairs: list[Pair], resamples: int = 10_000, seed: int = 0) -> dict:
+    """exp-v3 estimator (PLAN §5, registered as Amendment 13 at M3): POOLED
+    success-per-dollar = total successes / total dollars over all pairs, per agent;
+    relative difference of the two pooled ratios; stratified-by-regime paired
+    bootstrap over (regime, seed) groups; WIN iff rel >= 0.10 AND the 95% CI of the
+    relative difference excludes 0. Immune to the low-spend-ratio blow-up that
+    inverted exp-v1 (docs/RESULTS.md finding 1)."""
+    if not pairs:
+        return {"n_pairs": 0, "verdict": None, "estimator": "pooled_ratio"}
+    rng = random.Random(seed)
+    strata = defaultdict(list)
+    for p in pairs:
+        strata[p.regime].append(p)
+    strata_lists = list(strata.values())
+
+    def pooled(sample):
+        sb = sum(p.bandit_successes for p in sample) / max(sum(p.bandit_cost for p in sample), 1e-12)
+        sh = sum(p.heuristic_successes for p in sample) / max(sum(p.heuristic_cost for p in sample), 1e-12)
+        return sb, sh
+
+    spd_b, spd_h = pooled(pairs)
+    rel = _rel(spd_b, spd_h)
+    boots_b, boots_h, boots_rel = [], [], []
+    for _ in range(resamples):
+        sample = []
+        for group in strata_lists:
+            n = len(group)
+            sample.extend(group[rng.randrange(n)] for _ in range(n))
+        mb, mh = pooled(sample)
+        boots_b.append(mb)
+        boots_h.append(mh)
+        boots_rel.append(_rel(mb, mh))
+    ci_rel = _ci(boots_rel)
+    win = rel >= WIN_RELATIVE_MARGIN and ci_rel[0] > 0
+    per_regime = {}
+    for regime, group in sorted(strata.items()):
+        gb, gh = pooled(group)
+        per_regime[regime] = {"n": len(group), "bandit_pooled_spd": gb, "heuristic_pooled_spd": gh,
+                              "relative_difference": _rel(gb, gh),
+                              "bandit_wins_pairs": sum(p.bandit_spd > p.heuristic_spd for p in group)}
+    return {
+        "estimator": "pooled_ratio",
+        "n_pairs": len(pairs), "resamples": resamples, "bootstrap_seed": seed,
+        "bandit_pooled_spd": spd_b, "bandit_ci": _ci(boots_b),
+        "heuristic_pooled_spd": spd_h, "heuristic_ci": _ci(boots_h),
+        "relative_difference": rel, "relative_difference_ci": ci_rel,
+        "ci_excludes_zero": ci_rel[0] > 0, "margin_met": rel >= WIN_RELATIVE_MARGIN,
+        "verdict": "WIN" if win else "MATCHES",
+        "per_regime": per_regime,
+    }
 
 
 def _percentile(sorted_values: list[float], q: float) -> float:
@@ -534,9 +592,14 @@ def analyze(out_root: str | Path, spec_path: str | Path, resamples: int = 10_000
         report["verdict"] = None
         return report
     pairs = build_pairs(complete)
-    report["headline"] = headline(pairs, resamples, seed)
+    # Estimator is part of the registration: exp-v1/v2 = Amendment 10 mean of
+    # per-condition ratios; exp-v3 = pooled ratio (PLAN §5 / Amendment 13).
+    metric = spec.get("metric", "mean_of_ratios")
+    estimator = headline_pooled if metric == "pooled_ratio" else headline
+    report["metric"] = metric
+    report["headline"] = estimator(pairs, resamples, seed)
     equal = [p for p in pairs if p.equal_exposure]
-    report["robustness_equal_exposure"] = headline(equal, resamples, seed)
+    report["robustness_equal_exposure"] = estimator(equal, resamples, seed)
     report["verdict"] = report["headline"]["verdict"]
     return report
 
@@ -584,13 +647,36 @@ def format_summary(report: dict) -> str:
                      f"mean diff (b-h) {'n/a' if md is None else f'{md:+.1f}'} steps")
 
     h = report["headline"]
-    lines.append("\n== Headline (full data, Design decision 8 / Amendment 10) ==")
     if not h.get("n_pairs"):
+        lines.append("\n== Headline ==")
         lines.append("no bandit/heuristic pairs with a defined success-per-dollar "
                      "(zero-spend conditions?) — no verdict")
         lines.append("")
         lines.append("VERDICT: NONE")
         return "\n".join(lines)
+    if h.get("estimator") == "pooled_ratio":
+        lines.append("\n== Headline (full data, pooled success-per-dollar — exp-v3 §5) ==")
+        lines.append(f"pairs: {h['n_pairs']}  resamples: {h['resamples']}  seed: {h['bootstrap_seed']}")
+        lines.append(f"bandit    pooled SPD {h['bandit_pooled_spd']:.2f}  95% CI [{h['bandit_ci'][0]:.2f}, {h['bandit_ci'][1]:.2f}]")
+        lines.append(f"heuristic pooled SPD {h['heuristic_pooled_spd']:.2f}  95% CI [{h['heuristic_ci'][0]:.2f}, {h['heuristic_ci'][1]:.2f}]")
+        lines.append(f"relative difference {h['relative_difference']:+.3f}  95% CI "
+                     f"[{h['relative_difference_ci'][0]:+.3f}, {h['relative_difference_ci'][1]:+.3f}]  "
+                     f"(margin >= {WIN_RELATIVE_MARGIN:.2f}: {h['margin_met']}; CI excludes 0: {h['ci_excludes_zero']})")
+        for regime, pr in h["per_regime"].items():
+            lines.append(f"  {regime:<20} bandit {pr['bandit_pooled_spd']:.2f} vs heuristic "
+                         f"{pr['heuristic_pooled_spd']:.2f}  rel {pr['relative_difference']:+.3f}  "
+                         f"bandit wins {pr['bandit_wins_pairs']}/{pr['n']} pairs")
+        lines.append("")
+        lines.append(f"VERDICT: {h['verdict']}")
+        r = report["robustness_equal_exposure"]
+        if r.get("verdict") is None:
+            lines.append("robustness (equal exposure): no equal-exposure pairs")
+        else:
+            lines.append(f"robustness (equal exposure): {r['verdict']} on {r['n_pairs']} pairs — "
+                         f"rel {r['relative_difference']:+.3f} CI [{r['relative_difference_ci'][0]:+.3f}, "
+                         f"{r['relative_difference_ci'][1]:+.3f}]")
+        return "\n".join(lines)
+    lines.append("\n== Headline (full data, Design decision 8 / Amendment 10) ==")
     lines.append(f"pairs: {h['n_pairs']}  resamples: {h['resamples']}  seed: {h['bootstrap_seed']}")
     lines.append(f"bandit    mean SPD {h['bandit_mean_spd']:.2f}  95% CI [{h['bandit_ci'][0]:.2f}, {h['bandit_ci'][1]:.2f}]")
     lines.append(f"heuristic mean SPD {h['heuristic_mean_spd']:.2f}  95% CI [{h['heuristic_ci'][0]:.2f}, {h['heuristic_ci'][1]:.2f}]")

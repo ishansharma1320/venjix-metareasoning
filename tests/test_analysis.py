@@ -95,6 +95,23 @@ def test_headline_win_and_matches_rules():
     assert h["verdict"] == "MATCHES" and not h["margin_met"]
 
 
+def test_pooled_headline_is_immune_to_low_spend_ratio_blowup():
+    from venjix.analysis import headline_pooled
+    # 19 pairs where the bandit clearly wins (more successes at equal cost), plus one
+    # heuristic condition with 1 success at near-zero cost -> a per-condition ratio of
+    # 100,000 that would dominate a mean of ratios. Pooled must still say bandit wins.
+    pairs = [Pair("r", s, 20 / 1.0, 5 / 1.0, 1, 1, 20, 1.0, 5, 1.0) for s in range(19)]
+    pairs.append(Pair("r", 19, 20 / 1.0, 1 / 0.00001, 1, 1, 20, 1.0, 1, 0.00001))
+    pooled = headline_pooled(pairs, resamples=500, seed=0)
+    assert pooled["bandit_pooled_spd"] == 20.0 * 20 / 20.0
+    assert pooled["relative_difference"] > 1.0 and pooled["verdict"] == "WIN"
+    mean_of_ratios = headline(pairs, resamples=500, seed=0)
+    assert mean_of_ratios["relative_difference"] < 0  # the blow-up inverts it
+    # identical agents -> MATCHES under pooled too
+    same = [Pair("r", s, 5.0, 5.0, 1, 1, 5, 1.0, 5, 1.0) for s in range(20)]
+    assert headline_pooled(same, resamples=200, seed=0)["verdict"] == "MATCHES"
+
+
 def test_headline_is_deterministic_for_a_seed():
     pairs = [Pair("r", s, 6.0 + s * 0.1, 5.0 + (s % 2), 1, 1) for s in range(20)]
     a = headline(pairs, resamples=300, seed=0)
