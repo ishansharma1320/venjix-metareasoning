@@ -136,7 +136,11 @@ New/changed modules (each with tests before use; foundational schema changes fla
 
 - **M0** this plan approved and committed (decisions a–d resolved).
 - **M1** adapter, agents, world model, tests; full mock dress rehearsal of the set
-  (`runs/exp-v3-mock`), analysis script runs end-to-end on it.
+  (`runs/exp-v3-mock`), analysis script runs end-to-end on it. **DONE 2026-09-11**
+  (commits 6c725db…66e44df): 164 tests; rehearsal 480/480, 0 prefix divergences,
+  36 unequal-exposure groups, analysis + plots end-to-end. Note for M3: the analysis
+  headline still implements Amendment 10's mean-of-ratios; the pooled estimator (§5)
+  is added at M3 as Amendment 13, before any real exp-v3 data exists.
 - **M2** policy gate on the candidate substrates (pod, ≈ $5–8); substrate chosen.
 - **M3** registration freeze: `exp-v3.json`, price table, metric constants, analysis
   plan addendum; world-model calibration gate on the chosen substrate.
