@@ -6,7 +6,10 @@
 set -uo pipefail
 export PATH="/root/.local/bin:/opt/vllm-venv/bin:$PATH"
 export HF_HOME=/workspace/hf
-MODELS="${1:-Qwen/Qwen3-8B Qwen/Qwen3-30B-A3B-Instruct-2507 Qwen/Qwen3-32B}"
+# Cheapest pod (A100 80GB): 8B and 30B-A3B in bf16 as published; the 32B via Qwen's
+# own FP8 checkpoint (33 GB; weight-only on Ampere). Rule: gate the exact checkpoint
+# that would run in M4 — never gate one precision and run another.
+MODELS="${1:-Qwen/Qwen3-8B Qwen/Qwen3-30B-A3B-Instruct-2507 Qwen/Qwen3-32B-FP8}"
 BAR="${2:-0.255}"
 phase() { echo "PHASE:$1:$2 $(date -u +%H:%M:%S)"; }
 

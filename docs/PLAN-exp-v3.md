@@ -64,10 +64,13 @@ on the same gate, p − 1.96·√(p(1−p)/200), where p is measured by running
 `scripts/policy_gate.py --backend mock` — no move-fraction criterion (exp-v2
 lesson).** The bar is written into this section (§4a) before the first model call.
 The smallest GREEN substrate is chosen; its per-token serving price becomes the
-registered price table (decision (d)). Budget ≈ $5–8. Serving note: a 30B/32B model
-in bf16 needs ~60–64 GB of weights; on an 80 GB A100 that leaves little KV room, so
-the gate pod may be an H100 NVL (94 GB) or use the model's FP8 checkpoint — whichever
-is used is recorded as the serving config and re-used for M4.
+registered price table (decision (d)). Budget ≈ $3. Serving (decided 2026-09-11,
+cheapest pod = A100 80 GB at $1.59/h): `Qwen/Qwen3-8B` and
+`Qwen/Qwen3-30B-A3B-Instruct-2507` in bf16 as published; the 32B as Qwen's own
+`Qwen/Qwen3-32B-FP8` checkpoint (33 GB; weight-only FP8 on Ampere). **Rule: the
+checkpoint that is gated is the checkpoint that runs in M4** — precision is part of
+substrate identity (Amendment 8's one-provider-one-quantization principle), so gating
+and running never differ. KV-cache quantization is irrelevant at ~300-token requests.
 
 ### 4a. Declared gate bar (2026-09-11, from the mock floor run; before any model call)
 
