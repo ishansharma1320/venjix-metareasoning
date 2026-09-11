@@ -505,7 +505,23 @@ before rung 4. Git history timestamps them. The writeup must report all three.
       Any continuation (a redesigned gate criterion, or a larger budget) is a new
       amendment with its own justification and bias statement, decided by Ishan.
 
+14. **Amendment 12 (2026-09-10) — publication deferred; the results log is the
+    deliverable; Phase 2 may proceed.** The August 14 deadline passed with the run
+    lost to hardware; exp-v1 is now complete and analyzed (item 12) and exp-v2 halted
+    at its gate (item 13). Decision (Ishan): rather than write up a MATCHES-with-dead-
+    act-mode result on its own, **record every finding in `docs/RESULTS.md` as it
+    lands and publish when the log holds something worth publishing.** Consequences:
+    - The scope rule's "nothing in FUTURE.md may be implemented until Phase 1 is
+      published" becomes "until Phase 1 is *recorded in docs/RESULTS.md*". Phase 1 is
+      recorded as of this commit; the MiniGrid/BabyAI port (FUTURE.md) is unblocked.
+    - Everything else stands: each new experiment is its own pre-registration (spec
+      frozen, gates before runs, analysis plan before data, analysis code committed
+      before its first run on data, amendments with git timestamps). exp-v1's record
+      is never revised; corrections are appended to the log.
+
 ## Deadline
 
-Public repo + writeup posted by **August 14, 2026**, regardless of which baseline wins.
-Finishing is the deliverable.
+~~Public repo + writeup posted by **August 14, 2026**, regardless of which baseline
+wins.~~ *Superseded by Amendment 12:* the deliverable is a complete, honest
+`docs/RESULTS.md`; publication when it holds something worth publishing. Finishing each
+registered experiment — verdict printed, findings recorded — is still the deliverable.

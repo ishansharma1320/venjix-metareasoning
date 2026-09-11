@@ -46,7 +46,12 @@ Public repo + writeup posted by **August 14, 2026**, regardless of outcome.
 - [x] Contextual-bandit arbiter
 - [x] Shift experiments + plots (exp-v1 complete 2026-09-10; registered verdict
       **MATCHES** — see `results/exp-v1-analysis/` and docs/CLAUDE.md item 12)
-- [ ] Writeup
+- [x] exp-v2 (bounded thinking on policy calls) — halted at the policy gate, RED at
+      512 and 1024 (`results/exp-v2-policy-gate/`)
+- [x] Findings recorded in `docs/RESULTS.md` (Amendment 12: publication deferred until
+      the log holds something worth publishing)
+- [ ] Phase 2: MiniGrid/BabyAI port as exp-v3 (see FUTURE.md carry-overs)
+- [ ] Writeup / publication
 
 ## Non-goals (see FUTURE.md)
 
