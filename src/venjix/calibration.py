@@ -45,9 +45,13 @@ class Case:
     true_goal: tuple[int, int]
     truth_next: tuple[int, int]
     truth_reward: int
-    stratum: str  # "interior_move" | "edge_move" | "probe"
+    stratum: str  # "interior_move" | "edge_move" | "probe"  (minigrid: "forward" | "blocked_forward" | "turn")
     edge: bool  # position on the boundary
     belief: str  # "known" | "unknown"
+    # exp-v3 MiniGrid: facing before the action and the true facing after it;
+    # None for the Phase 1 gridworld.
+    facing: str | None = None
+    truth_dir: str | None = None
 
 
 @dataclass(frozen=True)
@@ -157,26 +161,93 @@ def generate_cases(sizes: list[int], n_cases: int, seed: int) -> list[Case]:
     return cases
 
 
-def run_probe(cases, client_factory, workers: int = 8):
+def generate_cases_minigrid(sizes: list[int], n_cases: int, seed: int) -> list[Case]:
+    """exp-v3 counterpart of generate_cases over MiniGrid-Empty egocentric
+    states. Quotas: 40% interior forward moves, 30% wall-blocked forward moves
+    (position on the inner ring, facing the wall), 30% turns. Belief 50/50
+    known/unknown as in Phase 1; 25% of known forward cases place the goal at
+    the ground-truth next cell. Ground truth = envspec.minigrid_next."""
+    from venjix.envspec import DIRS, DIR_DELTA, minigrid_next
+
+    rng = random.Random(seed)
+    n_forward = int(n_cases * 0.4)
+    n_blocked = int(n_cases * 0.3)
+    n_turn = n_cases - n_forward - n_blocked
+    cases: list[Case] = []
+
+    def walkable(size):
+        return (rng.randint(1, size - 2), rng.randint(1, size - 2))
+
+    def build(stratum, size, pos, facing, action):
+        truth_next, truth_dir = minigrid_next(size, pos, facing, action)
+        known = rng.random() < 0.5
+        if known:
+            if rng.random() < 0.25 and truth_next != pos:
+                goal = truth_next
+            else:
+                goal = walkable(size)
+                while goal == pos:
+                    goal = walkable(size)
+            believed, belief = goal, "known"
+        else:
+            goal = walkable(size)
+            while goal in (pos, truth_next):
+                goal = walkable(size)
+            believed, belief = None, "unknown"
+        cases.append(Case(
+            idx=len(cases), size=size, pos=pos, action=action, believed_goal=believed,
+            true_goal=goal, truth_next=truth_next, truth_reward=1 if truth_next == goal else 0,
+            stratum=stratum, edge=(pos[0] in (1, size - 2) or pos[1] in (1, size - 2)),
+            belief=belief, facing=facing, truth_dir=truth_dir,
+        ))
+
+    for _ in range(n_forward):
+        size = rng.choice(sizes)
+        while True:  # interior: forward never blocked
+            pos, facing = walkable(size), rng.choice(DIRS)
+            dx, dy = DIR_DELTA[facing]
+            if 1 <= pos[0] + dx <= size - 2 and 1 <= pos[1] + dy <= size - 2:
+                break
+        build("forward", size, pos, facing, "forward")
+    for _ in range(n_blocked):
+        size = rng.choice(sizes)
+        side = rng.choice(DIRS)  # face a wall from the inner ring
+        pos = {
+            "right": (size - 2, rng.randint(1, size - 2)), "left": (1, rng.randint(1, size - 2)),
+            "down": (rng.randint(1, size - 2), size - 2), "up": (rng.randint(1, size - 2), 1),
+        }[side]
+        build("blocked_forward", size, pos, side, "forward")
+    for _ in range(n_turn):
+        size = rng.choice(sizes)
+        build("turn", size, walkable(size), rng.choice(DIRS), rng.choice(("left", "right")))
+    return cases
+
+
+def run_probe(cases, client_factory, workers: int = 8, env_kind: str = "gridworld"):
     """Score every case; one client per shard (LLMClient counters are
     per-instance state — never share a client across threads). Returns
     (results ordered by case idx, usage dict)."""
+    from venjix.envspec import spec_for
+
+    spec = spec_for(env_kind)
     shards = [cases[i::workers] for i in range(workers) if cases[i::workers]]
     results: dict[int, CaseResult] = {}
     usage = {"llm_calls": 0, "input_tokens": 0, "output_tokens": 0}
 
     def work(shard) -> tuple[list[CaseResult], LLMClient]:
         client = client_factory()
-        worlds: dict[int, WorldModel] = {}
+        worlds: dict[int, object] = {}
         out = []
         for case in shard:
             world = worlds.setdefault(
-                case.size, WorldModel(client, GridworldConfig(size=case.size))
+                case.size, spec.make_world_model(client, GridworldConfig(size=case.size))
             )
             out_tokens_before = client.total_output_tokens
-            pred: Prediction = world.predict(case.pos, case.action, case.believed_goal)
+            state = case.pos if case.facing is None else (case.pos, case.facing)
+            pred: Prediction = world.predict(state, case.action, case.believed_goal)
             mispredicted = (
                 pred.next_pos != case.truth_next or pred.reward != case.truth_reward
+                or (case.truth_dir is not None and pred.next_dir != case.truth_dir)
             )
             out.append(
                 CaseResult(

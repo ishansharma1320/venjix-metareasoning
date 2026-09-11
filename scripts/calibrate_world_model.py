@@ -14,6 +14,7 @@ import argparse
 from venjix.calibration import (
     build_report,
     generate_cases,
+    generate_cases_minigrid,
     run_probe,
     write_outputs,
 )
@@ -31,17 +32,21 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--resamples", type=int, default=10_000)
     parser.add_argument("--out", default="runs/calibration")
+    parser.add_argument("--set", default=None, help="experiment spec (sizes + env_kind); default exp-v1")
     args = parser.parse_args()
 
-    sizes = sorted({r["env"]["size"] for r in load_spec()["regimes"]})
-    print(f"generating {args.cases} cases over grid sizes {sizes} (seed {args.seed})")
-    cases = generate_cases(sizes, args.cases, args.seed)
+    spec = load_spec(args.set) if args.set else load_spec()
+    env_kind = spec.get("env_kind", "gridworld")
+    sizes = sorted({r["env"]["size"] for r in spec["regimes"]})
+    print(f"generating {args.cases} {env_kind} cases over grid sizes {sizes} (seed {args.seed})")
+    gen = generate_cases_minigrid if env_kind == "minigrid" else generate_cases
+    cases = gen(sizes, args.cases, args.seed)
 
     def client_factory():
         return make_client(args.backend, args.model, seed=args.seed, base_url=args.base_url)
 
     print(f"probing {args.model} via {args.backend} with {args.workers} workers...")
-    results, usage = run_probe(cases, client_factory, workers=args.workers)
+    results, usage = run_probe(cases, client_factory, workers=args.workers, env_kind=env_kind)
 
     report = build_report(
         results, usage,

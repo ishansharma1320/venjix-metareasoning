@@ -170,6 +170,28 @@ def test_mock_end_to_end_minigrid_run(tmp_path, agent):
         assert all(r["prediction_error"] in (0, 1) for r in steps)
 
 
+def test_minigrid_calibration_cases_and_mock_probe():
+    from collections import Counter
+    from venjix.calibration import build_report, generate_cases_minigrid, run_probe
+    cases = generate_cases_minigrid([8, 12], 100, seed=0)
+    assert len(cases) == 100
+    strata = Counter(c.stratum for c in cases)
+    assert strata == {"forward": 40, "blocked_forward": 30, "turn": 30}
+    for c in cases:
+        assert c.facing in DIRS and c.truth_dir in DIRS
+        assert (c.truth_next, c.truth_dir) == minigrid_next(c.size, c.pos, c.facing, c.action)
+        if c.stratum == "blocked_forward":
+            assert c.truth_next == c.pos
+        if c.stratum == "forward":
+            assert c.truth_next != c.pos
+        if c.belief == "unknown":
+            assert c.believed_goal is None and c.truth_reward == 0
+    results, usage = run_probe(cases, lambda: MockModel(seed=0), workers=4, env_kind="minigrid")
+    report = build_report(results, usage, model="mock", backend="mock", seed=0, resamples=200)
+    assert report["overall"]["misprediction_rate"] == 0.0 and report["verdict"] == "GREEN"
+    assert usage["llm_calls"] == 100
+
+
 def test_env_kind_hash_compat_and_spec_lookup():
     env = cfg()
     sched = ShiftSchedule(version="t/r", entries=(ShiftEntry(4, 3),))

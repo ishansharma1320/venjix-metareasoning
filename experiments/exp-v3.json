@@ -1,0 +1,137 @@
+{
+  "version": "exp-v3",
+  "frozen_at": "DRAFT (freezes at M3; docs/PLAN-exp-v3.md)",
+  "description": "exp-v3: the Phase 1 design on MiniGrid-Empty (plan docs/PLAN-exp-v3.md). Same six agents, same agent params, paired shifts (goal relocation), egocentric left/right/forward actions, gather_evidence = one left turn, absolute (x, y, facing) + rendered 7x7 view in the observation. Model and prices are set at M3 from the policy gate (M2); the metric is the pooled success-per-dollar of Amendment 13 (to be written at M3).",
+  "env_kind": "minigrid",
+  "n_seeds": 20,
+  "n_episodes": 40,
+  "model": "TBD-at-M3",
+  "prices": {
+    "input_per_mtok_usd": 0.0,
+    "output_per_mtok_usd": 0.0
+  },
+  "agents": [
+    "reactive",
+    "retrieve",
+    "simulate",
+    "mixture",
+    "heuristic",
+    "bandit"
+  ],
+  "agent_params": {
+    "sim_depth": 3,
+    "ewma_alpha": 0.3,
+    "pe_threshold": 0.25,
+    "mixture_weights": [
+      0.25,
+      0.25,
+      0.25,
+      0.25
+    ],
+    "ucb_alpha": 1.0,
+    "cost_weight": 100.0
+  },
+  "amendment_note": "DRAFT for the mock dress rehearsal only. Not registered. Regimes per PLAN-exp-v3.md section 6; env.size includes the wall ring (walkable 1..size-2); env.step_budget = MiniGrid max_steps.",
+  "regimes": [
+    {
+      "name": "empty-8",
+      "note": "8x8 room (6x6 walkable), two mild shifts.",
+      "env": {
+        "size": 8,
+        "probe_radius": 0,
+        "step_budget": 32
+      },
+      "shifts": [
+        [
+          120,
+          3
+        ],
+        [
+          280,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "empty-12",
+      "note": "12x12 room, three mid-distance shifts.",
+      "env": {
+        "size": 12,
+        "probe_radius": 0,
+        "step_budget": 48
+      },
+      "shifts": [
+        [
+          180,
+          5
+        ],
+        [
+          360,
+          8
+        ],
+        [
+          540,
+          6
+        ]
+      ]
+    },
+    {
+      "name": "empty-16-far",
+      "note": "16x16 room, far relocations.",
+      "env": {
+        "size": 16,
+        "probe_radius": 0,
+        "step_budget": 64
+      },
+      "shifts": [
+        [
+          180,
+          7
+        ],
+        [
+          360,
+          12
+        ],
+        [
+          540,
+          9
+        ]
+      ]
+    },
+    {
+      "name": "empty-12-turbulent",
+      "note": "12x12 room, six shifts.",
+      "env": {
+        "size": 12,
+        "probe_radius": 0,
+        "step_budget": 48
+      },
+      "shifts": [
+        [
+          60,
+          4
+        ],
+        [
+          150,
+          6
+        ],
+        [
+          240,
+          5
+        ],
+        [
+          330,
+          4
+        ],
+        [
+          420,
+          6
+        ],
+        [
+          510,
+          5
+        ]
+      ]
+    }
+  ]
+}
