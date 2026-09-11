@@ -80,6 +80,25 @@ and running never differ. KV-cache quantization is irrelevant at ~300-token requ
 **The M2 gate passes iff a candidate's reactive-only success rate on the same gate
 is ≥ 0.255.** No other criterion.
 
+### 4b. M2 gate record and a flagged gate defect (2026-09-11 19:43 UTC, written
+BEFORE the 30B-A3B and 32B gate results existed)
+
+`Qwen/Qwen3-8B` (no thinking): success **0.270**, lower-95 bound 0.208, 4,823 steps —
+**GREEN by the §4a rule** (≥ 0.255). But **4,823/4,823 actions are `forward`**: the
+policy never turns; it succeeds only when the goal lies on its start row ahead of it
+(episodes of exactly 4 steps) and never after a shift moves it. That is a degenerate
+policy the gate failed to catch, for the mirror-image reason exp-v2's gate failed:
+"not significantly worse than random" cannot separate a lucky constant policy from a
+live one when the constant policy's success is near random's.
+
+**Proposed correction (Ishan decides; not applied to any result in this section):**
+add a degeneracy check in the spirit of the gate's stated purpose ("detect a dead
+policy"): **RED if any single action accounts for > 90% of gate steps**, regardless of
+success. Bias direction: it can only *exclude* substrates, never admit one, and it is
+declared before the remaining candidates' results are known. If adopted, the 8B
+verdict becomes RED and the smallest GREEN candidate among the rest is chosen; if
+not adopted, the §4 rule stands and the 8B is the substrate as written.
+
 ## 5. Metric (fixes exp-v1 finding 1)
 
 Success-per-dollar per (agent, regime) = **pooled**: total successes / total dollars
