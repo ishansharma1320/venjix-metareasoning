@@ -4,6 +4,12 @@ baseline and the arbiter log through it, so `mode` exists from day one.
 `mode` names the decision procedure (Design decision 5: chosen per step);
 `action` is the env primitive. A reactive agent that answers "probe" is still
 mode="act" — gather_evidence as a *mode* arrives with the later baselines.
+
+exp-v3: environment-specific pieces (action vocabulary, random-walk moves, the
+evidence primitive, the planner, the policy prompt, the world model) come from
+an EnvSpec (envspec.py). The arbitration logic below — the heuristic's rule and
+the bandit's context/reward — is environment-independent and byte-identical
+across specs; GRIDWORLD is the default so Phase 1 behaviour is unchanged.
 """
 
 import random
@@ -12,21 +18,27 @@ from dataclasses import dataclass
 
 from venjix.bandit import LinUCB
 from venjix.config import GridworldConfig, PriceTable
-from venjix.gridworld import ACTIONS, Observation
+from venjix.envspec import GRIDWORLD, EnvSpec
+from venjix.gridworld import Observation
 from venjix.llm import LLMClient
 from venjix.memory import EpisodicLog, Experience
 from venjix.signal import EwmaPredictionError
-from venjix.world import WorldModel
 
-MOVE_ACTIONS = ("up", "down", "left", "right")
+MOVE_ACTIONS = GRIDWORLD.move_actions
 MIXTURE_MODES = ("act", "retrieve", "simulate", "gather_evidence")
 
-_ACTION_RE = re.compile(r"\b(" + "|".join(ACTIONS) + r")\b", re.IGNORECASE)
+# Deterministic fallback for unparseable responses: the evidence primitive never
+# makes task progress, so parser failures can't fake success, and they stay
+# visible in the action stats alongside the parse_error flag.
+FALLBACK_ACTION = GRIDWORLD.fallback_action
 
-# Deterministic fallback for unparseable responses: probe never makes task
-# progress, so parser failures can't fake success, and they stay visible in the
-# action stats alongside the parse_error flag.
-FALLBACK_ACTION = "probe"
+_ACTION_RES: dict[str, re.Pattern] = {}
+
+
+def _action_re(spec: EnvSpec) -> re.Pattern:
+    if spec.kind not in _ACTION_RES:
+        _ACTION_RES[spec.kind] = re.compile(r"\b(" + "|".join(spec.actions) + r")\b", re.IGNORECASE)
+    return _ACTION_RES[spec.kind]
 
 
 @dataclass(frozen=True)
@@ -48,57 +60,40 @@ class Agent:
         return None
 
 
-def gather_action(last_action: str | None, rng: random.Random) -> str:
-    """The gather_evidence policy shared by signal-bearing agents: probe unless
-    the previous action was a probe (probing never moves — a pure-probe mode
-    would pin the agent to one cell), else a seeded random move."""
-    if last_action == "probe":
-        return rng.choice(MOVE_ACTIONS)
-    return "probe"
+def gather_action(last_action: str | None, rng: random.Random, spec: EnvSpec = GRIDWORLD) -> str:
+    """The gather_evidence policy shared by signal-bearing agents (spec-defined)."""
+    return spec.gather(last_action, rng)
 
 
 def greedy_step(pos: tuple[int, int], goal: tuple[int, int]) -> str | None:
-    """Deterministic step toward goal: close the row gap first, then the
-    column. None when already on the goal cell."""
-    if pos[0] != goal[0]:
-        return "down" if pos[0] < goal[0] else "up"
-    if pos[1] != goal[1]:
-        return "right" if pos[1] < goal[1] else "left"
-    return None
+    """Phase 1 planner: close the row gap first, then the column. None when
+    already on the goal cell. (MiniGrid uses MiniGridSpec.plan.)"""
+    return GRIDWORLD.plan(pos, goal)
 
 
-def parse_action(text: str) -> tuple[str, bool]:
-    match = _ACTION_RE.search(text)
+def parse_action(text: str, spec: EnvSpec = GRIDWORLD) -> tuple[str, bool]:
+    match = _action_re(spec).search(text)
     if match is None:
-        return FALLBACK_ACTION, True
+        return spec.fallback_action, True
     return match.group(1).lower(), False
+
+
+def _experience(prev_obs: Observation, action: str, obs: Observation) -> Experience:
+    return Experience(prev_obs.pos, action, obs.pos, obs.reward, obs.probe_result)
 
 
 class ReactiveAgent(Agent):
     """One cheap policy call on the current observation (Design decision 3).
     No history, no memory — that is the point of this baseline."""
 
-    def __init__(self, client: LLMClient, env_config: GridworldConfig):
+    def __init__(self, client: LLMClient, env_config: GridworldConfig, spec: EnvSpec = GRIDWORLD):
         self.client = client
-        self._rules = (
-            f"You control an agent on a {env_config.size}x{env_config.size} grid. "
-            f"A hidden goal cell gives reward 1; reaching it ends the episode. "
-            f"Positions are (row, col) with (0, 0) at the top-left. "
-            f"Actions: up, down, left, right (move one cell), or probe "
-            f"(reveals the goal's offset if it is within Manhattan distance "
-            f"{env_config.probe_radius}, costs one step, no movement). "
-            f"You have {env_config.step_budget} steps per episode."
-        )
+        self.env_config = env_config
+        self.spec = spec
 
     def choose(self, obs: Observation) -> Decision:
-        prompt = (
-            f"{self._rules}\n"
-            f"Current position: {obs.pos}. Steps used: {obs.steps_used}.\n"
-            f"Last probe result: {obs.probe_result}.\n"
-            f"Reply with exactly one action word: up, down, left, right, or probe."
-        )
-        response = self.client.complete(prompt)
-        action, parse_error = parse_action(response.text)
+        response = self.client.complete(self.spec.policy_prompt(self.env_config, obs))
+        action, parse_error = parse_action(response.text, self.spec)
         return Decision(mode="act", action=action, parse_error=parse_error)
 
 
@@ -108,25 +103,24 @@ class RetrieveOnlyAgent(Agent):
     which is exactly its role in the study. Cold start (or standing on a stale
     believed goal that paid nothing): seeded random walk."""
 
-    def __init__(self, seed: int, memory: EpisodicLog | None = None):
+    def __init__(self, seed: int, memory: EpisodicLog | None = None, spec: EnvSpec = GRIDWORLD):
         self.memory = memory if memory is not None else EpisodicLog()
         self._rng = random.Random(seed)
+        self.spec = spec
 
     def choose(self, obs: Observation) -> Decision:
         goal = self.memory.believed_goal()
-        action = greedy_step(obs.pos, goal) if goal is not None else None
+        action = self.spec.plan(self.spec.state(obs), goal) if goal is not None else None
         if action is None:
-            action = self._rng.choice(MOVE_ACTIONS)
+            action = self._rng.choice(self.spec.move_actions)
         return Decision(mode="retrieve", action=action, parse_error=False)
 
     def observe(self, prev_obs: Observation, action: str, obs: Observation) -> None:
-        self.memory.append(
-            Experience(prev_obs.pos, action, obs.pos, obs.reward, obs.probe_result)
-        )
+        self.memory.append(_experience(prev_obs, action, obs))
 
 
 class SimulateOnlyAgent(Agent):
-    """k-step world-model rollouts over the 4 move candidates before committing
+    """k-step world-model rollouts over the move candidates before committing
     (Design decision 3). Every simulated step is one LLM call, metered into the
     env step's cost by the runner's counter snapshot. With no believed goal the
     rollouts predict no reward anywhere and the agent falls back to a seeded
@@ -140,47 +134,43 @@ class SimulateOnlyAgent(Agent):
         seed: int,
         sim_depth: int = 3,
         memory: EpisodicLog | None = None,
+        spec: EnvSpec = GRIDWORLD,
     ):
-        self.world = WorldModel(client, env_config)
+        self.spec = spec
+        self.world = spec.make_world_model(client, env_config)
         self.memory = memory if memory is not None else EpisodicLog()
         self.sim_depth = sim_depth
         self._rng = random.Random(seed)
 
     def choose(self, obs: Observation) -> Decision:
         goal = self.memory.believed_goal()
+        state = self.spec.state(obs)
         best_action: str | None = None
         best_steps: int | None = None
-        for candidate in MOVE_ACTIONS:
-            steps = self._rollout(obs.pos, candidate, goal)
+        for candidate in self.spec.move_actions:
+            steps = self._rollout(state, candidate, goal)
             if steps is not None and (best_steps is None or steps < best_steps):
                 best_action, best_steps = candidate, steps
         if best_action is None:
-            best_action = self._rng.choice(MOVE_ACTIONS)
+            best_action = self._rng.choice(self.spec.move_actions)
         return Decision(mode="simulate", action=best_action, parse_error=False)
 
-    def _rollout(
-        self,
-        pos: tuple[int, int],
-        first_action: str,
-        goal: tuple[int, int] | None,
-    ) -> int | None:
+    def _rollout(self, state, first_action: str, goal: tuple[int, int] | None) -> int | None:
         """Predicted number of steps to reward (<= sim_depth), or None.
-        Rollout policy after the first action: greedy toward the believed goal;
-        with no goal, keep heading the same way."""
+        Rollout policy after the first action: the planner toward the believed
+        goal; with no goal, keep repeating the same action."""
         action = first_action
         for depth in range(1, self.sim_depth + 1):
-            prediction = self.world.predict(pos, action, goal)
+            prediction = self.world.predict(state, action, goal)
             if prediction.reward == 1:
                 return depth
-            pos = prediction.next_pos
+            state = prediction.next_state
             if goal is not None:
-                action = greedy_step(pos, goal) or action
+                action = self.spec.plan(state, goal) or action
         return None
 
     def observe(self, prev_obs: Observation, action: str, obs: Observation) -> None:
-        self.memory.append(
-            Experience(prev_obs.pos, action, obs.pos, obs.reward, obs.probe_result)
-        )
+        self.memory.append(_experience(prev_obs, action, obs))
 
 
 class ThresholdHeuristicAgent(Agent):
@@ -190,14 +180,12 @@ class ThresholdHeuristicAgent(Agent):
                else ("retrieve" if memory.believed_goal() else "act")
 
     Signal per Design decision 2: before acting, one world-model call predicts
-    (next_pos, reward) for the chosen action; after acting, the misprediction
-    is scored binarily and folded into the shared EWMA. That prediction call is
-    the signal's honest per-step cost. probe_result is not part of the scored
-    observation — the world model predicts position and reward only.
+    the next state and reward for the chosen action; after acting, the
+    misprediction is scored binarily and folded into the shared EWMA. That
+    prediction call is the signal's honest per-step cost. Evidence fields
+    (probe result / goal-in-view) are not part of the scored observation.
 
-    gather_evidence policy: probe unless the previous action was a probe, else
-    a seeded random move — a probe/move sweep, since probing never moves and a
-    pure-probe mode would pin the agent to one cell.
+    gather_evidence policy: the spec's evidence primitive, never twice in a row.
     """
 
     def __init__(
@@ -207,12 +195,14 @@ class ThresholdHeuristicAgent(Agent):
         seed: int,
         ewma_alpha: float = 0.3,
         pe_threshold: float = 0.25,
+        spec: EnvSpec = GRIDWORLD,
     ):
+        self.spec = spec
         self.memory = EpisodicLog()
-        self.world = WorldModel(client, env_config)
+        self.world = spec.make_world_model(client, env_config)
         self.signal = EwmaPredictionError(ewma_alpha)
         self.pe_threshold = pe_threshold
-        self._act = ReactiveAgent(client, env_config)
+        self._act = ReactiveAgent(client, env_config, spec)
         self._rng = random.Random(seed)
         self._last_action: str | None = None
         self._pending_prediction = None
@@ -222,6 +212,7 @@ class ThresholdHeuristicAgent(Agent):
 
     def choose(self, obs: Observation) -> Decision:
         goal = self.memory.believed_goal()
+        state = self.spec.state(obs)
         if self.signal.value > self.pe_threshold:
             mode = "gather_evidence"
         else:
@@ -229,27 +220,25 @@ class ThresholdHeuristicAgent(Agent):
 
         parse_error = False
         if mode == "gather_evidence":
-            action = gather_action(self._last_action, self._rng)
+            action = self.spec.gather(self._last_action, self._rng)
         elif mode == "retrieve":
-            action = greedy_step(obs.pos, goal) or self._rng.choice(MOVE_ACTIONS)
+            action = self.spec.plan(state, goal) or self._rng.choice(self.spec.move_actions)
         else:
             act_decision = self._act.choose(obs)
             action, parse_error = act_decision.action, act_decision.parse_error
 
-        self._pending_prediction = self.world.predict(obs.pos, action, goal)
+        self._pending_prediction = self.world.predict(state, action, goal)
         return Decision(mode=mode, action=action, parse_error=parse_error)
 
     def observe(self, prev_obs: Observation, action: str, obs: Observation) -> None:
-        self.memory.append(
-            Experience(prev_obs.pos, action, obs.pos, obs.reward, obs.probe_result)
-        )
+        self.memory.append(_experience(prev_obs, action, obs))
         self._last_action = action
         prediction = self._pending_prediction
         self._pending_prediction = None
         if prediction is None:
             return
         mispredicted = (
-            prediction.next_pos != obs.pos or prediction.reward != obs.reward
+            prediction.next_state != self.spec.state(obs) or prediction.reward != obs.reward
         )
         self.last_prediction_error = int(mispredicted)
         self.signal_value = self.signal.update(mispredicted)
@@ -280,17 +269,19 @@ class BanditArbiterAgent(Agent):
         ewma_alpha: float = 0.3,
         ucb_alpha: float = 1.0,
         cost_weight: float = 100.0,
+        spec: EnvSpec = GRIDWORLD,
     ):
+        self.spec = spec
         self.client = client
         self.prices = prices
         self.cost_weight = cost_weight
         self.memory = EpisodicLog()
-        self.world = WorldModel(client, env_config)
+        self.world = spec.make_world_model(client, env_config)
         self.signal = EwmaPredictionError(ewma_alpha)
         self.bandit = LinUCB(n_arms=len(MIXTURE_MODES), dim=3, ucb_alpha=ucb_alpha)
-        self._act = ReactiveAgent(client, env_config)
+        self._act = ReactiveAgent(client, env_config, spec)
         self._simulate = SimulateOnlyAgent(
-            client, env_config, seed, sim_depth, memory=self.memory
+            client, env_config, seed, sim_depth, memory=self.memory, spec=spec
         )
         self._rng = random.Random(seed)
         self._last_action: str | None = None
@@ -303,6 +294,7 @@ class BanditArbiterAgent(Agent):
         input0 = self.client.total_input_tokens
         output0 = self.client.total_output_tokens
         goal = self.memory.believed_goal()
+        state = self.spec.state(obs)
         context = (1.0, self.signal.value, 1.0 if goal is not None else 0.0)
         arm = self.bandit.select(context)
         mode = MIXTURE_MODES[arm]
@@ -312,29 +304,27 @@ class BanditArbiterAgent(Agent):
             act_decision = self._act.choose(obs)
             action, parse_error = act_decision.action, act_decision.parse_error
         elif mode == "retrieve":
-            action = (greedy_step(obs.pos, goal) if goal is not None else None) or (
-                self._rng.choice(MOVE_ACTIONS)
+            action = (self.spec.plan(state, goal) if goal is not None else None) or (
+                self._rng.choice(self.spec.move_actions)
             )
         elif mode == "simulate":
             action = self._simulate.choose(obs).action
         else:
-            action = gather_action(self._last_action, self._rng)
+            action = self.spec.gather(self._last_action, self._rng)
 
-        prediction = self.world.predict(obs.pos, action, goal)
+        prediction = self.world.predict(state, action, goal)
         self._pending = (context, arm, prediction, input0, output0)
         return Decision(mode=mode, action=action, parse_error=parse_error)
 
     def observe(self, prev_obs: Observation, action: str, obs: Observation) -> None:
-        self.memory.append(
-            Experience(prev_obs.pos, action, obs.pos, obs.reward, obs.probe_result)
-        )
+        self.memory.append(_experience(prev_obs, action, obs))
         self._last_action = action
         if self._pending is None:
             return
         context, arm, prediction, input0, output0 = self._pending
         self._pending = None
         mispredicted = (
-            prediction.next_pos != obs.pos or prediction.reward != obs.reward
+            prediction.next_state != self.spec.state(obs) or prediction.reward != obs.reward
         )
         self.last_prediction_error = int(mispredicted)
         self.signal_value = self.signal.update(mispredicted)
@@ -349,7 +339,7 @@ class BanditArbiterAgent(Agent):
 class FixedMixtureAgent(Agent):
     """Static mode proportions, no adaptivity: an i.i.d. per-step draw over
     (act, retrieve, simulate, gather_evidence) — Design decision 5. All modes
-    share one episodic log; gather_evidence emits the probe action."""
+    share one episodic log; gather_evidence emits the spec's evidence primitive."""
 
     def __init__(
         self,
@@ -358,15 +348,18 @@ class FixedMixtureAgent(Agent):
         seed: int,
         weights: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25),
         sim_depth: int = 3,
+        spec: EnvSpec = GRIDWORLD,
     ):
+        self.spec = spec
         self.weights = weights
         self.memory = EpisodicLog()
-        self._act = ReactiveAgent(client, env_config)
-        self._retrieve = RetrieveOnlyAgent(seed, memory=self.memory)
+        self._act = ReactiveAgent(client, env_config, spec)
+        self._retrieve = RetrieveOnlyAgent(seed, memory=self.memory, spec=spec)
         self._simulate = SimulateOnlyAgent(
-            client, env_config, seed, sim_depth, memory=self.memory
+            client, env_config, seed, sim_depth, memory=self.memory, spec=spec
         )
         self._rng = random.Random(seed)
+        self._last_action: str | None = None
 
     def choose(self, obs: Observation) -> Decision:
         mode = self._rng.choices(MIXTURE_MODES, weights=self.weights)[0]
@@ -376,9 +369,11 @@ class FixedMixtureAgent(Agent):
             return self._retrieve.choose(obs)
         if mode == "simulate":
             return self._simulate.choose(obs)
-        return Decision(mode="gather_evidence", action="probe", parse_error=False)
+        # Phase 1 emitted a bare "probe" here (never a random move); keep that
+        # exactly for the gridworld spec, use the spec primitive otherwise.
+        action = "probe" if self.spec.kind == "gridworld" else self.spec.gather(self._last_action, self._rng)
+        return Decision(mode="gather_evidence", action=action, parse_error=False)
 
     def observe(self, prev_obs: Observation, action: str, obs: Observation) -> None:
-        self.memory.append(
-            Experience(prev_obs.pos, action, obs.pos, obs.reward, obs.probe_result)
-        )
+        self.memory.append(_experience(prev_obs, action, obs))
+        self._last_action = action

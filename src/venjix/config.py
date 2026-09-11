@@ -100,8 +100,15 @@ class RunConfig:
     # without a response regex). None = thinking off (exp-v1). Omitted from
     # to_dict()/config_hash() when None so every exp-v1 hash is unchanged.
     policy_thinking_budget: int | None = None
+    # exp-v3: which environment `env` describes. "gridworld" (Phase 1; omitted
+    # from the hash) or "minigrid" (MiniGrid-Empty; `env.size` is the room size
+    # including the wall ring, `env.step_budget` its max_steps; probe_radius,
+    # start and goal are unused).
+    env_kind: str = "gridworld"
 
     def __post_init__(self) -> None:
+        if self.env_kind not in ("gridworld", "minigrid"):
+            raise ValueError(f"env_kind must be 'gridworld' or 'minigrid', got {self.env_kind!r}")
         if self.policy_thinking_budget is not None and self.policy_thinking_budget < 1:
             raise ValueError("policy_thinking_budget must be >= 1 or None")
         if self.agent not in AGENT_TYPES:
@@ -129,6 +136,8 @@ class RunConfig:
         d = asdict(self)
         if d["policy_thinking_budget"] is None:
             del d["policy_thinking_budget"]  # hash-compatible with pre-exp-v2 configs
+        if d["env_kind"] == "gridworld":
+            del d["env_kind"]  # hash-compatible with pre-exp-v3 configs
         return d
 
     def config_hash(self) -> str:

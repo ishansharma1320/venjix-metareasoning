@@ -70,6 +70,8 @@ def conditions(spec: dict, agents: list[str] | None = None) -> list[Condition]:
                     cost_weight=params["cost_weight"],
                     # exp-v2 (Amendment 11); absent in exp-v1 -> None -> hashes unchanged
                     policy_thinking_budget=spec.get("policy_thinking_budget"),
+                    # exp-v3: absent -> "gridworld" -> hashes unchanged
+                    env_kind=spec.get("env_kind", "gridworld"),
                 )
                 result.append(
                     Condition(regime=regime["name"], agent=agent, seed=seed, config=config)

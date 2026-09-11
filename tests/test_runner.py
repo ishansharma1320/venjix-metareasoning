@@ -19,6 +19,7 @@ STEP_FIELDS = {
     "llm_calls", "input_tokens", "output_tokens", "cost_usd", "wall_time_ms",
     "prediction_error", "signal_ewma",
     "forced_answer",  # Amendment 11 schema addition (nullable)
+    "dir",  # exp-v3 schema addition (nullable; MiniGrid facing)
 }
 
 VOLATILE = ("wall_time_ms",)

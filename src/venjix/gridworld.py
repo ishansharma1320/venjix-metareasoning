@@ -32,6 +32,11 @@ class Observation:
     success: bool
     probe_result: tuple[int, int] | str | None  # offset | OUT_OF_RANGE | None
     steps_used: int
+    # FOUNDATIONAL-INTERFACE ADDITION (exp-v3 plan §8, additive, defaulted):
+    # MiniGrid facing direction and the rendered egocentric view; None for the
+    # Phase 1 gridworld, whose behaviour is unchanged.
+    dir: str | None = None
+    view: str | None = None
 
 
 def _manhattan(a: tuple[int, int], b: tuple[int, int]) -> int:

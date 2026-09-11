@@ -66,6 +66,7 @@ class EpisodeLogger:
         prediction_error: int | None,
         signal_ewma: float | None,
         forced_answer: int | None = None,
+        dir: str | None = None,
     ) -> None:
         self._write(
             {
@@ -94,6 +95,9 @@ class EpisodeLogger:
                 # policy calls this step whose thinking hit the budget and were
                 # forced to answer; null for clients without a thinking budget.
                 "forced_answer": forced_answer,
+                # SCHEMA ADDITION (exp-v3, additive + nullable): MiniGrid facing
+                # after the step; null for the Phase 1 gridworld.
+                "dir": dir,
             }
         )
 

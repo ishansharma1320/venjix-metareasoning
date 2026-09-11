@@ -22,6 +22,7 @@ from venjix.config import (
     ShiftEntry,
     ShiftSchedule,
 )
+from venjix.envspec import spec_for
 from venjix.gridworld import Gridworld
 from venjix.llm import LLMClient, make_client
 from venjix.logs import EpisodeLogger, now_ms
@@ -40,16 +41,26 @@ class RunSummary:
     cost_usd: float
 
 
+def build_env(config: RunConfig):
+    """Phase 1 gridworld or the MiniGrid-Empty adapter (exp-v3), same surface."""
+    if config.env_kind == "minigrid":
+        from venjix.minigrid_env import MiniGridEmpty  # lazy: optional dependency
+
+        return MiniGridEmpty(config.env, config.seed)
+    return Gridworld(config.env, config.seed)
+
+
 def build_agent(config: RunConfig, client: LLMClient) -> Agent:
+    spec = spec_for(config.env_kind)
     if config.agent == "reactive":
-        return ReactiveAgent(client, config.env)
+        return ReactiveAgent(client, config.env, spec)
     if config.agent == "retrieve":
-        return RetrieveOnlyAgent(config.seed)
+        return RetrieveOnlyAgent(config.seed, spec=spec)
     if config.agent == "simulate":
-        return SimulateOnlyAgent(client, config.env, config.seed, config.sim_depth)
+        return SimulateOnlyAgent(client, config.env, config.seed, config.sim_depth, spec=spec)
     if config.agent == "heuristic":
         return ThresholdHeuristicAgent(
-            client, config.env, config.seed, config.ewma_alpha, config.pe_threshold
+            client, config.env, config.seed, config.ewma_alpha, config.pe_threshold, spec=spec
         )
     if config.agent == "bandit":
         return BanditArbiterAgent(
@@ -61,14 +72,15 @@ def build_agent(config: RunConfig, client: LLMClient) -> Agent:
             config.ewma_alpha,
             config.ucb_alpha,
             config.cost_weight,
+            spec=spec,
         )
     return FixedMixtureAgent(
-        client, config.env, config.seed, config.mixture_weights, config.sim_depth
+        client, config.env, config.seed, config.mixture_weights, config.sim_depth, spec=spec
     )
 
 
 def run(config: RunConfig, client: LLMClient, out_root: str | Path) -> RunSummary:
-    env = Gridworld(config.env, config.seed)
+    env = build_env(config)
     scheduler = ShiftScheduler(config.schedule)
     agent = build_agent(config, client)
     logger = EpisodeLogger(out_root, config)
@@ -120,6 +132,7 @@ def run(config: RunConfig, client: LLMClient, out_root: str | Path) -> RunSummar
                         None if forced0 is None
                         else client.total_forced_answers - forced0
                     ),
+                    dir=obs.dir,
                 )
                 ep_calls += client.total_calls - calls0
                 ep_in += step_in

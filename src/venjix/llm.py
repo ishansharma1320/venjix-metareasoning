@@ -31,10 +31,14 @@ PREDICT_MARKER = "PREDICT"
 _FIELD_RES = {
     "grid": re.compile(r"GRID:\s*(\d+)"),
     "pos": re.compile(r"POSITION:\s*\((\d+)\s*,\s*(\d+)\)"),
+    "facing": re.compile(r"FACING:\s*(right|down|left|up)"),
     "action": re.compile(r"ACTION:\s*(\w+)"),
     "goal": re.compile(r"BELIEVED_GOAL:\s*(?:\((\d+)\s*,\s*(\d+)\)|(unknown))"),
+    "vocab": re.compile(r"Reply with exactly one action word: ([a-z, ]+?)\."),
 }
 _MOVES = {"up": (-1, 0), "down": (1, 0), "left": (0, -1), "right": (0, 1)}
+_MG_DIRS = ("right", "down", "left", "up")
+_MG_DELTA = {"right": (1, 0), "down": (0, 1), "left": (-1, 0), "up": (0, -1)}
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 
 # Qwen3 "thinking budget" recipe (Amendment 11): when the think block hits the
@@ -125,8 +129,16 @@ class MockModel(LLMClient):
         elif prompt.startswith(PREDICT_MARKER):
             text = self._predict_reply(prompt)
         else:
+            # Policy prompt: pick a legal action from the vocabulary the prompt
+            # itself names ("Reply with exactly one action word: a, b, or c."),
+            # so the same mock serves the Phase 1 gridworld and MiniGrid.
+            vocab_match = _FIELD_RES["vocab"].search(prompt)
+            vocab = (
+                tuple(w.strip() for w in vocab_match.group(1).replace(" or ", ",").split(",") if w.strip())
+                if vocab_match else self.ACTIONS
+            )
             digest = hashlib.sha256(f"{self._seed}:{prompt}".encode()).digest()
-            action = self.ACTIONS[int.from_bytes(digest[:4], "big") % len(self.ACTIONS)]
+            action = vocab[int.from_bytes(digest[:4], "big") % len(vocab)]
             text = f"action: {action}"
         return LLMResponse(
             text=text,
@@ -149,6 +161,23 @@ class MockModel(LLMClient):
             if goal_match.group(3) is not None
             else (int(goal_match.group(1)), int(goal_match.group(2)))
         )
+
+        facing_match = _FIELD_RES["facing"].search(prompt)
+        if facing_match is not None:
+            # MiniGrid egocentric truth (exp-v3): turns rotate, forward moves
+            # unless the outer wall ring blocks (walkable 1..size-2).
+            direction = facing_match.group(1)
+            if action in ("left", "right"):
+                i = _MG_DIRS.index(direction)
+                direction = _MG_DIRS[(i - 1) % 4] if action == "left" else _MG_DIRS[(i + 1) % 4]
+                next_pos = pos
+            else:
+                dx, dy = _MG_DELTA[direction]
+                cand = (pos[0] + dx, pos[1] + dy)
+                inside = 1 <= cand[0] <= size - 2 and 1 <= cand[1] <= size - 2
+                next_pos = cand if inside else pos
+            reward = 1 if goal is not None and next_pos == goal else 0
+            return f"NEXT: {next_pos} FACING: {direction} REWARD: {reward}"
 
         dr, dc = _MOVES.get(action, (0, 0))  # probe/unknown: stay in place
         last = size - 1

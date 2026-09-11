@@ -8,6 +8,8 @@ dependencies = []
 [dependency-groups]
 dev = ["pytest>=8"]
 analysis = ["matplotlib>=3.8"]  # plots only; the package itself stays dependency-free
+# exp-v3 (Phase 2): the MiniGrid adapter imports these lazily; Phase 1 needs none.
+minigrid = ["minigrid>=3.1", "gymnasium>=1.0", "numpy>=1.26"]
 
 [build-system]
 requires = ["hatchling"]

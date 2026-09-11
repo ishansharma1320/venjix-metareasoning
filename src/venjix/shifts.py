@@ -8,7 +8,7 @@ schedules just a special case of where the shift steps land.
 from dataclasses import dataclass
 
 from venjix.config import ShiftSchedule
-from venjix.gridworld import Gridworld
+from venjix.gridworld import Gridworld  # noqa: F401  (type reference; MiniGridEmpty shares the surface)
 
 
 @dataclass(frozen=True)
@@ -25,7 +25,7 @@ class ShiftScheduler:
         self.schedule = schedule
         self._next_index = 0
 
-    def maybe_shift(self, global_step: int, env: Gridworld) -> list[ShiftRecord]:
+    def maybe_shift(self, global_step: int, env) -> list[ShiftRecord]:
         """Fire every not-yet-fired entry with at_step <= global_step.
 
         Call once after each env step with the cumulative step count. With unit
